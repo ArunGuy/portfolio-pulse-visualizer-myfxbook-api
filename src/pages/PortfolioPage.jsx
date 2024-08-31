@@ -36,10 +36,12 @@ const PortfolioPage = () => {
         const start = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
         const dailyData = await getDataDaily(session, accountsData[0].id, start, end);
         setDailyData(dailyData);
+      } else {
+        setError('No accounts found. Please check your MyFXBook session.');
       }
     } catch (err) {
-      setError('Failed to fetch data. Please try again later.');
-      console.error(err);
+      setError(`Failed to fetch data: ${err.message}`);
+      console.error('Fetch error:', err);
     }
     setIsLoading(false);
   };
@@ -57,7 +59,12 @@ const PortfolioPage = () => {
   }
 
   if (error) {
-    return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <div className="text-red-500 text-xl mb-4">{error}</div>
+        <Button onClick={fetchData}>Retry</Button>
+      </div>
+    );
   }
 
   return (
