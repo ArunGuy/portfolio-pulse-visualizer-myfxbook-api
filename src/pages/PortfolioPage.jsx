@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { getMyAccounts, getOpenTrades, getDataDaily } from '../services/myfxbookApi';
+import axios from 'axios';
 
 const PortfolioPage = () => {
   const [timeRange, setTimeRange] = useState('1M');
@@ -14,14 +15,44 @@ const PortfolioPage = () => {
   const [dailyData, setDailyData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const session = 'DSL07vu14QxHWErTIAFrH40'; // This should be obtained from a login process and stored securely
+  const [accountName, setAccountName] = useState('Loading...');
+  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    const fetchSessionId = async () => {
+      try {
+        const response = await axios.get(
+          'https://www.myfxbook.com/api/login.xml?email=arunwichchusin@hotmail.com&password=Mas050322566'
+        );
+
+        if (response.status === 200) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(response.data, 'text/xml');
+          const session = xmlDoc.getElementsByTagName('session')[0]?.textContent;
+
+          if (session) {
+            setSessionId(session);
+            localStorage.setItem('sessionId', session);
+            fetchData(session);
+          }
+        } else {
+          setError('Failed to login. Please check your credentials.');
+        }
+      } catch (error) {
+        setError(`Login error: ${error.message}`);
+      }
+    };
+
+    const storedSessionId = localStorage.getItem('sessionId');
+    if (storedSessionId) {
+      setSessionId(storedSessionId);
+      fetchData(storedSessionId);
+    } else {
+      fetchSessionId();
+    }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (session) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -29,6 +60,7 @@ const PortfolioPage = () => {
       setAccounts(accountsData);
 
       if (accountsData.length > 0) {
+        setAccountName(accountsData[0].name[0]);
         const tradesData = await getOpenTrades(session, accountsData[0].id);
         setOpenTrades(tradesData);
 
@@ -51,7 +83,7 @@ const PortfolioPage = () => {
   const totalGain = ((totalEquity - totalBalance) / totalBalance * 100).toFixed(2);
 
   const handleRefresh = () => {
-    fetchData();
+    fetchData(sessionId);
   };
 
   if (isLoading) {
@@ -62,7 +94,7 @@ const PortfolioPage = () => {
     return (
       <div className="flex flex-col justify-center items-center h-screen">
         <div className="text-red-500 text-xl mb-4">{error}</div>
-        <Button onClick={fetchData}>Retry</Button>
+        <Button onClick={() => fetchData(sessionId)}>Retry</Button>
       </div>
     );
   }
@@ -70,7 +102,7 @@ const PortfolioPage = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Forex Portfolio Overview</h1>
+        <h1 className="text-3xl font-bold">Forex Portfolio Overview - {accountName}</h1>
         <div className="flex items-center space-x-4">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[180px]">
