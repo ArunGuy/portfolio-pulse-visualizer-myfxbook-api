@@ -1,15 +1,16 @@
 import axios from 'axios';
-import { parseString } from 'xml2js';
+import { XMLParser } from 'fast-xml-parser';
 
 const BASE_URL = 'https://www.myfxbook.com/api';
 
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_"
+});
+
 const parseXmlResponse = (xmlData) => {
-  return new Promise((resolve, reject) => {
-    parseString(xmlData, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  const result = parser.parse(xmlData);
+  return result.response;
 };
 
 const apiCall = async (endpoint, params) => {
@@ -19,13 +20,13 @@ const apiCall = async (endpoint, params) => {
   while (retries < maxRetries) {
     try {
       const response = await axios.get(`${BASE_URL}/${endpoint}`, { params });
-      const parsedData = await parseXmlResponse(response.data);
+      const parsedData = parseXmlResponse(response.data);
 
-      if (parsedData.response.error[0] !== '0') {
-        throw new Error(`API Error: ${parsedData.response.message[0]}`);
+      if (parsedData.error !== '0') {
+        throw new Error(`API Error: ${parsedData.message}`);
       }
 
-      return parsedData.response;
+      return parsedData;
     } catch (error) {
       console.error(`${endpoint} error (attempt ${retries + 1}):`, error.message);
       retries++;
@@ -39,20 +40,20 @@ const apiCall = async (endpoint, params) => {
 
 export const getMyAccounts = async (session) => {
   const response = await apiCall('get-my-accounts.xml', { session });
-  return response.accounts[0].account;
+  return response.accounts.account;
 };
 
 export const getOpenTrades = async (session, id) => {
   const response = await apiCall('get-open-trades.xml', { session, id });
-  return response.trades[0].trade;
+  return response.trades.trade;
 };
 
 export const getDataDaily = async (session, id, start, end) => {
   const response = await apiCall('get-data-daily.xml', { session, id, start, end });
-  return response.dataDaily[0].data;
+  return response.dataDaily.data;
 };
 
 export const logout = async (session) => {
   const response = await apiCall('logout.xml', { session });
-  return response.error[0] === '0';
+  return response.error === '0';
 };
