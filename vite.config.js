@@ -20,6 +20,13 @@ export default defineConfig({
         find: "lib",
         replacement: resolve(__dirname, "lib"),
       },
+      {
+        find: 'fast-xml-parser',
+        replacement: 'fast-xml-parser/src/fxp.js'
+      }
     ],
   },
+  optimizeDeps: {
+    include: ['fast-xml-parser']
+  }
 });

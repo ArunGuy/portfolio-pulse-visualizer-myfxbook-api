@@ -4,100 +4,155 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { getMyAccounts, getOpenTrades, getDataDaily } from '../services/myfxbookApi';
-import axios from 'axios';
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { getMyAccounts, getOpenTrades, getDataDaily, logout } from '../services/myfxbookApi';
+
+// Define mock data
+const mockAccounts = [
+  { name: "Demo Account 1", balance: "1000", equity: "1050", gain: "5.00" },
+  { name: "Demo Account 2", balance: "2000", equity: "2100", gain: "5.00" },
+];
+
+const mockOpenTrades = [
+  { ticket: "12345", symbol: "EUR/USD", type: "Buy", lots: "1.00", openPrice: "1.10000", currentPrice: "1.10500", profit: "50.00" },
+  { ticket: "12346", symbol: "GBP/USD", type: "Sell", lots: "0.50", openPrice: "1.30000", currentPrice: "1.29500", profit: "25.00" },
+];
+
+const mockDailyData = [
+  { date: "2024-08-01", gain: 10 },
+  { date: "2024-08-02", gain: 20 },
+  { date: "2024-08-03", gain: -5 },
+];
 
 const PortfolioPage = () => {
   const [timeRange, setTimeRange] = useState('1M');
   const [accounts, setAccounts] = useState([]);
   const [openTrades, setOpenTrades] = useState([]);
   const [dailyData, setDailyData] = useState([]);
+  const [accountName, setAccountName] = useState('Loading...');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [accountName, setAccountName] = useState('Loading...');
-  const [sessionId, setSessionId] = useState(null);
+  const [session, setSession] = useState(null);
 
-  useEffect(() => {
-    const fetchSessionId = async () => {
-      try {
-        const response = await axios.get(
-          'https://www.myfxbook.com/api/login.xml?email=arunwichchusin@hotmail.com&password=Mas050322566'
-        );
-
-        if (response.status === 200) {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(response.data, 'text/xml');
-          const session = xmlDoc.getElementsByTagName('session')[0]?.textContent;
-
-          if (session) {
-            setSessionId(session);
-            localStorage.setItem('sessionId', session);
-            fetchData(session);
-          }
-        } else {
-          setError('Failed to login. Please check your credentials.');
-        }
-      } catch (error) {
-        setError(`Login error: ${error.message}`);
-      }
-    };
-
-    const storedSessionId = localStorage.getItem('sessionId');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
-      fetchData(storedSessionId);
-    } else {
-      fetchSessionId();
+  const fetchData = async () => {
+    if (!session) {
+      console.log('Session is null, skipping fetchData.');
+      setAccounts(mockAccounts);
+      setOpenTrades(mockOpenTrades);
+      setDailyData(mockDailyData);
+      setAccountName('Mock Account');
+      setIsLoading(false);
+      return;
     }
-  }, []);
 
-  const fetchData = async (session) => {
     setIsLoading(true);
     setError(null);
+    console.log('Fetching data with session:', session);
+
     try {
       const accountsData = await getMyAccounts(session);
-      setAccounts(accountsData);
+      console.log('Fetched accounts data:', accountsData);
 
-      if (accountsData.length > 0) {
-        setAccountName(accountsData[0].name[0]);
-        const tradesData = await getOpenTrades(session, accountsData[0].id);
-        setOpenTrades(tradesData);
-
-        const end = new Date().toISOString().split('T')[0];
-        const start = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
-        const dailyData = await getDataDaily(session, accountsData[0].id, start, end);
-        setDailyData(dailyData);
+      if (accountsData && accountsData.length > 0) {
+        setAccounts(accountsData);
+        setAccountName(accountsData[0]?.name || 'Demo Account');
       } else {
-        setError('No accounts found. Please check your MyFXBook session.');
+        console.warn('No accounts data returned, using mock data.');
+        setAccounts(mockAccounts);
+        setAccountName('Mock Account');
       }
+
+      const allOpenTrades = await Promise.all(
+        accountsData.map(account => getOpenTrades(session, account['@_id']))
+      );
+      console.log('Fetched open trades data:', allOpenTrades);
+      setOpenTrades(allOpenTrades.flat());
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(endDate.getMonth() - getTimeRangeInMonths(timeRange));
+
+      const allDailyData = await Promise.all(
+        accountsData.map(account => getDataDaily(session, account['@_id'], startDate.toISOString(), endDate.toISOString()))
+      );
+      console.log('Fetched daily data:', allDailyData);
+      setDailyData(allDailyData.flat());
     } catch (err) {
-      setError(`Failed to fetch data: ${err.message}`);
-      console.error('Fetch error:', err);
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Unable to fetch data. Please try again later.');
+      // Use mock data when there's an error
+      setAccounts(mockAccounts);
+      setOpenTrades(mockOpenTrades);
+      setDailyData(mockDailyData);
+      setAccountName('Mock Account');
+    } finally {
+      setIsLoading(false);
+      console.log('Data loading complete');
     }
-    setIsLoading(false);
   };
 
-  const totalBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance[0]), 0);
-  const totalEquity = accounts.reduce((sum, account) => sum + parseFloat(account.equity[0]), 0);
-  const totalGain = ((totalEquity - totalBalance) / totalBalance * 100).toFixed(2);
+  useEffect(() => {
+    console.log('Current session:', session);
+    if (session) {
+      fetchData();
+    } else {
+      console.log('Session is null, using mock data.');
+      setAccounts(mockAccounts);
+      setOpenTrades(mockOpenTrades);
+      setDailyData(mockDailyData);
+      setAccountName('Mock Account');
+      setIsLoading(false);
+    }
+  }, [session, timeRange]);
+
+  const getTimeRangeInMonths = (range) => {
+    switch (range) {
+      case '1M': return 1;
+      case '3M': return 3;
+      case '6M': return 6;
+      case '1Y': return 12;
+      default: return 1;
+    }
+  };
 
   const handleRefresh = () => {
-    fetchData(sessionId);
+    if (session) {
+      console.log('Refreshing data with session:', session);
+      fetchData();
+    } else {
+      console.log('Session is null, cannot refresh data.');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      console.log('Logging out with session:', session);
+      await logout(session);
+      setSession(null);
+      // Navigate to login page or clear other session-related state
+      console.log('Logged out successfully');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError('Failed to logout. Please try again.');
+    }
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <div className="flex justify-center items-center h-screen">Loading data...</div>;
   }
 
   if (error) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen">
-        <div className="text-red-500 text-xl mb-4">{error}</div>
-        <Button onClick={() => fetchData(sessionId)}>Retry</Button>
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
+        <p className="font-bold">Warning</p>
+        <p>{error}</p>
       </div>
     );
   }
+
+  const totalBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance), 0);
+  const totalEquity = accounts.reduce((sum, account) => sum + parseFloat(account.equity), 0);
+  const totalGain = totalBalance > 0 ? ((totalEquity - totalBalance) / totalBalance * 100).toFixed(2) : '0.00';
 
   return (
     <div className="container mx-auto p-4">
@@ -118,9 +173,11 @@ const PortfolioPage = () => {
           <Button onClick={handleRefresh}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
+          <Button onClick={handleLogout}>Logout</Button>
         </div>
       </div>
       
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader>
@@ -159,148 +216,50 @@ const PortfolioPage = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      {/* Tabs for Open Trades and Daily Data */}
+      <Tabs defaultValue="openTrades" className="mb-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="trades">Open Trades</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="openTrades">Open Trades</TabsTrigger>
+          <TabsTrigger value="dailyData">Daily Data</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={accounts}
-                      dataKey="balance"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      label
-                    />
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Daily Gain</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dailyData}>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="gain" stroke="#82ca9d" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="openTrades">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lots</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Open Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {openTrades.map((trade) => (
+                <tr key={trade.ticket}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{trade.ticket}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{trade.symbol}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{trade.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{trade.lots}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{trade.openPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{trade.currentPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${trade.profit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </TabsContent>
-        <TabsContent value="accounts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Listing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Account Name</th>
-                      <th className="text-right p-2">Balance</th>
-                      <th className="text-right p-2">Equity</th>
-                      <th className="text-right p-2">Gain</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {accounts.map((account, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">{account.name[0]}</td>
-                        <td className="text-right p-2">${parseFloat(account.balance[0]).toLocaleString()}</td>
-                        <td className="text-right p-2">${parseFloat(account.equity[0]).toLocaleString()}</td>
-                        <td className={`text-right p-2 ${parseFloat(account.gain[0]) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {parseFloat(account.gain[0]).toFixed(2)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="trades">
-          <Card>
-            <CardHeader>
-              <CardTitle>Open Trades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Ticket</th>
-                      <th className="text-left p-2">Symbol</th>
-                      <th className="text-left p-2">Type</th>
-                      <th className="text-right p-2">Lots</th>
-                      <th className="text-right p-2">Open Price</th>
-                      <th className="text-right p-2">Current Price</th>
-                      <th className="text-right p-2">Profit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {openTrades.map((trade, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">{trade.ticket[0]}</td>
-                        <td className="p-2">{trade.symbol[0]}</td>
-                        <td className="p-2">{trade.type[0]}</td>
-                        <td className="text-right p-2">{parseFloat(trade.lots[0]).toFixed(2)}</td>
-                        <td className="text-right p-2">{parseFloat(trade.openPrice[0]).toFixed(5)}</td>
-                        <td className="text-right p-2">{parseFloat(trade.closePrice[0]).toFixed(5)}</td>
-                        <td className={`text-right p-2 ${parseFloat(trade.profit[0]) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${parseFloat(trade.profit[0]).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="performance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={dailyData}>
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line yAxisId="left" type="monotone" dataKey="balance" stroke="#8884d8" />
-                  <Line yAxisId="left" type="monotone" dataKey="equity" stroke="#82ca9d" />
-                  <Line yAxisId="right" type="monotone" dataKey="gain" stroke="#ffc658" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <TabsContent value="dailyData">
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={dailyData}>
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
         </TabsContent>
       </Tabs>
     </div>
