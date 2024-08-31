@@ -4,23 +4,61 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { mockMyAccounts, mockOpenTrades, mockDataDaily } from '../services/myfxbookApi';
+import { LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { getMyAccounts, getOpenTrades, getDataDaily } from '../services/myfxbookApi';
 
 const PortfolioPage = () => {
   const [timeRange, setTimeRange] = useState('1M');
-  const [accounts, setAccounts] = useState(mockMyAccounts.accounts);
-  const [openTrades, setOpenTrades] = useState(mockOpenTrades.trades);
-  const [dailyData, setDailyData] = useState(mockDataDaily.dailyData);
+  const [accounts, setAccounts] = useState([]);
+  const [openTrades, setOpenTrades] = useState([]);
+  const [dailyData, setDailyData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
-  const totalEquity = accounts.reduce((sum, account) => sum + account.equity, 0);
+  const session = 'DSL07vu14QxHWErTIAFrH40'; // This should be obtained from a login process and stored securely
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const accountsData = await getMyAccounts(session);
+      setAccounts(accountsData);
+
+      if (accountsData.length > 0) {
+        const tradesData = await getOpenTrades(session, accountsData[0].id);
+        setOpenTrades(tradesData);
+
+        const end = new Date().toISOString().split('T')[0];
+        const start = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
+        const dailyData = await getDataDaily(session, accountsData[0].id, start, end);
+        setDailyData(dailyData);
+      }
+    } catch (err) {
+      setError('Failed to fetch data. Please try again later.');
+      console.error(err);
+    }
+    setIsLoading(false);
+  };
+
+  const totalBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance[0]), 0);
+  const totalEquity = accounts.reduce((sum, account) => sum + parseFloat(account.equity[0]), 0);
   const totalGain = ((totalEquity - totalBalance) / totalBalance * 100).toFixed(2);
 
   const handleRefresh = () => {
-    console.log("Refreshing data...");
-    // In a real app, this would trigger API calls to fetch fresh data
+    fetchData();
   };
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -151,11 +189,11 @@ const PortfolioPage = () => {
                   <tbody>
                     {accounts.map((account, index) => (
                       <tr key={index} className="border-b">
-                        <td className="p-2">{account.name}</td>
-                        <td className="text-right p-2">${account.balance.toLocaleString()}</td>
-                        <td className="text-right p-2">${account.equity.toLocaleString()}</td>
-                        <td className={`text-right p-2 ${account.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {account.gain.toFixed(2)}%
+                        <td className="p-2">{account.name[0]}</td>
+                        <td className="text-right p-2">${parseFloat(account.balance[0]).toLocaleString()}</td>
+                        <td className="text-right p-2">${parseFloat(account.equity[0]).toLocaleString()}</td>
+                        <td className={`text-right p-2 ${parseFloat(account.gain[0]) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {parseFloat(account.gain[0]).toFixed(2)}%
                         </td>
                       </tr>
                     ))}
@@ -187,14 +225,14 @@ const PortfolioPage = () => {
                   <tbody>
                     {openTrades.map((trade, index) => (
                       <tr key={index} className="border-b">
-                        <td className="p-2">{trade.ticket}</td>
-                        <td className="p-2">{trade.symbol}</td>
-                        <td className="p-2">{trade.type}</td>
-                        <td className="text-right p-2">{trade.lots}</td>
-                        <td className="text-right p-2">{trade.openPrice}</td>
-                        <td className="text-right p-2">{trade.currentPrice}</td>
-                        <td className={`text-right p-2 ${trade.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${trade.profit.toFixed(2)}
+                        <td className="p-2">{trade.ticket[0]}</td>
+                        <td className="p-2">{trade.symbol[0]}</td>
+                        <td className="p-2">{trade.type[0]}</td>
+                        <td className="text-right p-2">{parseFloat(trade.lots[0]).toFixed(2)}</td>
+                        <td className="text-right p-2">{parseFloat(trade.openPrice[0]).toFixed(5)}</td>
+                        <td className="text-right p-2">{parseFloat(trade.closePrice[0]).toFixed(5)}</td>
+                        <td className={`text-right p-2 ${parseFloat(trade.profit[0]) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${parseFloat(trade.profit[0]).toFixed(2)}
                         </td>
                       </tr>
                     ))}
