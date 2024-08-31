@@ -70,21 +70,6 @@ export const getDataDaily = async (session, id, start, end) => {
   return Array.isArray(response.dataDaily.data) ? response.dataDaily.data : [response.dataDaily.data];
 };
 
-export const getMyAccounts = async (session) => {
-  const response = await apiCall('get-my-accounts.xml', { session });
-  return response.accounts.account;
-};
-
-export const getOpenTrades = async (session, id) => {
-  const response = await apiCall('get-open-trades.xml', { session, id });
-  return response.trades.trade;
-};
-
-export const getDataDaily = async (session, id, start, end) => {
-  const response = await apiCall('get-data-daily.xml', { session, id, start, end });
-  return response.dataDaily.data;
-};
-
 export const logout = async (session) => {
   const response = await apiCall('logout.xml', { session });
   return response.error === '0';
