@@ -1,37 +1,82 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-
-// Mock API function (replace with actual API call)
-const fetchPortfolioData = async () => {
-  // Simulated API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return {
-    totalPortfolios: 5,
-    dailyChange: 2.5,
-    weeklyChange: -1.2,
-    monthlyChange: 5.8,
-    portfolios: [
-      { name: 'Tech Stocks', amount: 50000, change: 3.2 },
-      { name: 'Real Estate', amount: 75000, change: -0.8 },
-      { name: 'Bonds', amount: 30000, change: 0.5 },
-      { name: 'Cryptocurrencies', amount: 10000, change: 7.5 },
-      { name: 'Commodities', amount: 15000, change: 1.2 },
-    ],
-  };
-};
+import { loginToMyfxbook, getHistory, getDailyGain, getGain, getWatchedAccounts } from '../services/myfxbookApi';
 
 const PortfolioPage = () => {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['portfolioData'],
-    queryFn: fetchPortfolioData,
+  const [session, setSession] = useState(null);
+  const [accountId, setAccountId] = useState(null);
+
+  useEffect(() => {
+    const login = async () => {
+      try {
+        const loginResponse = await loginToMyfxbook('arunwichchusin@hotmail.com', 'Mas050322566');
+        if (loginResponse.error === '0') {
+          setSession(loginResponse.session);
+        } else {
+          console.error('Login failed:', loginResponse.message);
+        }
+      } catch (error) {
+        console.error('Error during login:', error);
+      }
+    };
+    login();
+  }, []);
+
+  const { data: watchedAccounts, isLoading: isLoadingAccounts } = useQuery({
+    queryKey: ['watchedAccounts', session],
+    queryFn: () => getWatchedAccounts(session),
+    enabled: !!session,
   });
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  useEffect(() => {
+    if (watchedAccounts && watchedAccounts.accounts && watchedAccounts.accounts.length > 0) {
+      setAccountId(watchedAccounts.accounts[0].id);
+    }
+  }, [watchedAccounts]);
 
-  const { totalPortfolios, dailyChange, weeklyChange, monthlyChange, portfolios } = data;
+  const { data: historyData, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['history', session, accountId],
+    queryFn: () => getHistory(session, accountId),
+    enabled: !!session && !!accountId,
+  });
+
+  const { data: dailyGainData, isLoading: isLoadingDailyGain } = useQuery({
+    queryKey: ['dailyGain', session, accountId],
+    queryFn: () => getDailyGain(session, accountId, '2023-01-01', '2024-03-15'),
+    enabled: !!session && !!accountId,
+  });
+
+  const { data: gainData, isLoading: isLoadingGain } = useQuery({
+    queryKey: ['gain', session, accountId],
+    queryFn: () => getGain(session, accountId, '2023-01-01', '2024-03-15'),
+    enabled: !!session && !!accountId,
+  });
+
+  if (isLoadingAccounts || isLoadingHistory || isLoadingDailyGain || isLoadingGain) {
+    return <div>Loading...</div>;
+  }
+
+  if (!watchedAccounts || !historyData || !dailyGainData || !gainData) {
+    return <div>No data available</div>;
+  }
+
+  const totalPortfolios = watchedAccounts.accounts.length;
+  const dailyChange = parseFloat(dailyGainData.dailyGain[dailyGainData.dailyGain.length - 1].value);
+  const weeklyChange = parseFloat(gainData.weeklyGain);
+  const monthlyChange = parseFloat(gainData.monthlyGain);
+
+  const portfolios = watchedAccounts.accounts.map(account => ({
+    name: account.name,
+    amount: parseFloat(account.balance),
+    change: parseFloat(account.gain),
+  }));
+
+  const dailyGainChartData = dailyGainData.dailyGain.map(item => ({
+    date: item.date,
+    gain: parseFloat(item.value),
+  }));
 
   return (
     <div className="container mx-auto p-4">
@@ -104,17 +149,17 @@ const PortfolioPage = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Portfolio Performance</CardTitle>
+            <CardTitle>Daily Gain</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={portfolios}>
-                <XAxis dataKey="name" />
+              <LineChart data={dailyGainChartData}>
+                <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="change" fill="#82ca9d" />
-              </BarChart>
+                <Line type="monotone" dataKey="gain" stroke="#82ca9d" />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
