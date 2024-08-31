@@ -1,129 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { loginToMyfxbook, getHistory, getDailyGain, getGain, getWatchedAccounts } from '../services/myfxbookApi';
+
+// Mock data
+const mockPortfolios = [
+  { name: "Stock Portfolio", amount: 50000, change: 2.5 },
+  { name: "Bond Portfolio", amount: 30000, change: 1.2 },
+  { name: "Real Estate", amount: 100000, change: 3.8 },
+  { name: "Cryptocurrency", amount: 20000, change: -5.2 },
+];
+
+const mockDailyGainData = Array.from({ length: 30 }, (_, i) => ({
+  date: new Date(2023, 0, i + 1).toISOString().split('T')[0],
+  gain: Math.random() * 4 - 2, // Random value between -2 and 2
+}));
 
 const PortfolioPage = () => {
-  const [session, setSession] = useState(null);
-  const [accountId, setAccountId] = useState(null);
   const [timeRange, setTimeRange] = useState('1M');
 
-  const login = async () => {
-    try {
-      const loginResponse = await loginToMyfxbook('arunwichchusin@hotmail.com', 'Mas050322566');
-      if (loginResponse.error === '0') {
-        setSession(loginResponse.session);
-      } else {
-        console.error('Login failed:', loginResponse.message);
-      }
-    } catch (error) {
-      console.error('Error during login:', error);
-    }
-  };
-
-  useEffect(() => {
-    login();
-  }, []);
-
-  const { data: watchedAccounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useQuery({
-    queryKey: ['watchedAccounts', session],
-    queryFn: () => getWatchedAccounts(session),
-    enabled: !!session,
-  });
-
-  useEffect(() => {
-    if (watchedAccounts && watchedAccounts.accounts && watchedAccounts.accounts.length > 0) {
-      setAccountId(watchedAccounts.accounts[0].id);
-    }
-  }, [watchedAccounts]);
-
-  const getDateRange = () => {
-    const end = new Date();
-    let start = new Date();
-    switch (timeRange) {
-      case '1M':
-        start.setMonth(end.getMonth() - 1);
-        break;
-      case '3M':
-        start.setMonth(end.getMonth() - 3);
-        break;
-      case '6M':
-        start.setMonth(end.getMonth() - 6);
-        break;
-      case '1Y':
-        start.setFullYear(end.getFullYear() - 1);
-        break;
-      default:
-        start.setMonth(end.getMonth() - 1);
-    }
-    return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
-    };
-  };
-
-  const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory } = useQuery({
-    queryKey: ['history', session, accountId, timeRange],
-    queryFn: () => {
-      const { start, end } = getDateRange();
-      return getHistory(session, accountId, start, end);
-    },
-    enabled: !!session && !!accountId,
-  });
-
-  const { data: dailyGainData, isLoading: isLoadingDailyGain, refetch: refetchDailyGain } = useQuery({
-    queryKey: ['dailyGain', session, accountId, timeRange],
-    queryFn: () => {
-      const { start, end } = getDateRange();
-      return getDailyGain(session, accountId, start, end);
-    },
-    enabled: !!session && !!accountId,
-  });
-
-  const { data: gainData, isLoading: isLoadingGain, refetch: refetchGain } = useQuery({
-    queryKey: ['gain', session, accountId, timeRange],
-    queryFn: () => {
-      const { start, end } = getDateRange();
-      return getGain(session, accountId, start, end);
-    },
-    enabled: !!session && !!accountId,
-  });
+  const totalPortfolios = mockPortfolios.length;
+  const dailyChange = mockDailyGainData[mockDailyGainData.length - 1].gain;
+  const weeklyChange = mockDailyGainData.slice(-7).reduce((acc, curr) => acc + curr.gain, 0);
+  const monthlyChange = mockDailyGainData.reduce((acc, curr) => acc + curr.gain, 0);
 
   const handleRefresh = () => {
-    refetchAccounts();
-    refetchHistory();
-    refetchDailyGain();
-    refetchGain();
+    console.log("Refreshing data...");
+    // In a real app, this would trigger data refetch
   };
-
-  if (isLoadingAccounts || isLoadingHistory || isLoadingDailyGain || isLoadingGain) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
-  }
-
-  if (!watchedAccounts || !historyData || !dailyGainData || !gainData) {
-    return <div className="flex justify-center items-center h-screen">No data available</div>;
-  }
-
-  const totalPortfolios = watchedAccounts.accounts.length;
-  const dailyChange = parseFloat(dailyGainData.dailyGain[dailyGainData.dailyGain.length - 1].value);
-  const weeklyChange = parseFloat(gainData.weeklyGain);
-  const monthlyChange = parseFloat(gainData.monthlyGain);
-
-  const portfolios = watchedAccounts.accounts.map(account => ({
-    name: account.name,
-    amount: parseFloat(account.balance),
-    change: parseFloat(account.gain),
-  }));
-
-  const dailyGainChartData = dailyGainData.dailyGain.map(item => ({
-    date: item.date,
-    gain: parseFloat(item.value),
-  }));
 
   return (
     <div className="container mx-auto p-4">
@@ -204,7 +111,7 @@ const PortfolioPage = () => {
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={portfolios}
+                      data={mockPortfolios}
                       dataKey="amount"
                       nameKey="name"
                       cx="50%"
@@ -225,7 +132,7 @@ const PortfolioPage = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dailyGainChartData}>
+                  <LineChart data={mockDailyGainData}>
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
@@ -244,7 +151,7 @@ const PortfolioPage = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={dailyGainChartData}>
+                <LineChart data={mockDailyGainData}>
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
@@ -271,7 +178,7 @@ const PortfolioPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {portfolios.map((portfolio, index) => (
+                    {mockPortfolios.map((portfolio, index) => (
                       <tr key={index} className="border-b">
                         <td className="p-2">{portfolio.name}</td>
                         <td className="text-right p-2">${portfolio.amount.toLocaleString()}</td>
