@@ -6,13 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { RefreshCw, ArrowUpRight, ArrowDownRight, AlertCircle, Filter } from "lucide-react";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
 import { login, getMyAccounts, getOpenTrades, getAccountHistory, getDailyGain, getTotalGain, logout, getWatchedAccounts, getOpenOrders } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, format } from "date-fns";
 
@@ -30,6 +27,7 @@ const PortfolioPage = () => {
   const [password, setPassword] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
   const [openOrders, setOpenOrders] = useState([]);
+  const [useMockData, setUseMockData] = useState(false);
 
   const [dateRange, setDateRange] = useState({
     from: addDays(new Date(), -30),
@@ -47,8 +45,14 @@ const PortfolioPage = () => {
     setLoading(true);
     setError('');
     try {
-      const sessionId = await login(email, password);
-      setSession(sessionId);
+      if (email === 'demo@example.com' && password === 'demo123') {
+        setUseMockData(true);
+        setSession('mock-session');
+      } else {
+        const sessionId = await login(email, password);
+        setSession(sessionId);
+        setUseMockData(false);
+      }
     } catch (err) {
       setError('Login failed. Please check your credentials.');
     } finally {
@@ -58,7 +62,9 @@ const PortfolioPage = () => {
 
   const handleLogout = async () => {
     try {
-      await logout(session);
+      if (!useMockData) {
+        await logout(session);
+      }
       setSession('');
       setAccounts([]);
       setWatchedAccounts([]);
@@ -66,6 +72,7 @@ const PortfolioPage = () => {
       setTradeHistory([]);
       setDailyGain([]);
       setTotalGain(0);
+      setUseMockData(false);
     } catch (err) {
       setError('Logout failed. Please try again.');
     }
@@ -75,26 +82,36 @@ const PortfolioPage = () => {
     setLoading(true);
     setError('');
     try {
-      const [accountsData, watchedAccountsData] = await Promise.all([
-        getMyAccounts(session),
-        getWatchedAccounts(session)
-      ]);
-      setAccounts(accountsData);
-      setWatchedAccounts(watchedAccountsData);
-
-      if (selectedAccount) {
-        const [openTradesData, tradeHistoryData, dailyGainData, totalGainData, openOrdersData] = await Promise.all([
-          getOpenTrades(session, selectedAccount),
-          getAccountHistory(session, selectedAccount),
-          getDailyGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
-          getTotalGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
-          getOpenOrders(session, selectedAccount)
+      if (useMockData) {
+        setAccounts(mockData.accounts);
+        setWatchedAccounts(mockData.watchedAccounts);
+        setOpenTrades(mockData.openTrades);
+        setTradeHistory(mockData.tradeHistory);
+        setDailyGain(mockData.dailyGain);
+        setTotalGain(mockData.totalGain);
+        setOpenOrders(mockData.openOrders);
+      } else {
+        const [accountsData, watchedAccountsData] = await Promise.all([
+          getMyAccounts(session),
+          getWatchedAccounts(session)
         ]);
-        setOpenTrades(openTradesData);
-        setTradeHistory(tradeHistoryData);
-        setDailyGain(dailyGainData);
-        setTotalGain(totalGainData);
-        setOpenOrders(openOrdersData);
+        setAccounts(accountsData);
+        setWatchedAccounts(watchedAccountsData);
+
+        if (selectedAccount) {
+          const [openTradesData, tradeHistoryData, dailyGainData, totalGainData, openOrdersData] = await Promise.all([
+            getOpenTrades(session, selectedAccount),
+            getAccountHistory(session, selectedAccount),
+            getDailyGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
+            getTotalGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
+            getOpenOrders(session, selectedAccount)
+          ]);
+          setOpenTrades(openTradesData);
+          setTradeHistory(tradeHistoryData);
+          setDailyGain(dailyGainData);
+          setTotalGain(totalGainData);
+          setOpenOrders(openOrdersData);
+        }
       }
     } catch (err) {
       setError('Failed to fetch data. Please try again.');
@@ -189,7 +206,6 @@ const PortfolioPage = () => {
             <div className="text-2xl font-bold">{totalGain.toFixed(2)}%</div>
           </CardContent>
         </Card>
-        {/* Add more summary cards here */}
       </div>
 
       <Tabs defaultValue="overview" className="mb-6">
@@ -198,7 +214,6 @@ const PortfolioPage = () => {
           <TabsTrigger value="openTrades">Open Trades</TabsTrigger>
           <TabsTrigger value="history">Trade History</TabsTrigger>
           <TabsTrigger value="watchedAccounts">Watched Accounts</TabsTrigger>
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -230,12 +245,11 @@ const PortfolioPage = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#8884d8" />
+                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            {/* Add more overview charts here */}
           </div>
         </TabsContent>
 
@@ -273,10 +287,8 @@ const PortfolioPage = () => {
           </Card>
         </TabsContent>
 
-        {/* Add more tab content for history, watched accounts, and analysis */}
+        {/* Add more tab content for history and watched accounts */}
       </Tabs>
-
-      {/* Add more dashboard components here */}
     </div>
   );
 

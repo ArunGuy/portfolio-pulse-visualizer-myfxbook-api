@@ -38,6 +38,7 @@ export const mockData = {
       openDate: '2023-03-14T14:45:00Z',
       symbol: 'GBPUSD',
       action: 'Sell',
+      openPrice: 1.2150,
       profit: -25.5,
       pips: -20,
       swap: -1.2
