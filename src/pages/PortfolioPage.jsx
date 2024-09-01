@@ -28,6 +28,8 @@ const PortfolioPage = () => {
   const [selectedAccount, setSelectedAccount] = useState('');
   const [openOrders, setOpenOrders] = useState([]);
   const [useMockData, setUseMockData] = useState(false);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [todayGain, setTodayGain] = useState(0);
 
   const [dateRange, setDateRange] = useState({
     from: addDays(new Date(), -30),
@@ -90,6 +92,8 @@ const PortfolioPage = () => {
         setDailyGain(mockData.dailyGain);
         setTotalGain(mockData.totalGain);
         setOpenOrders(mockData.openOrders);
+        setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
+        setTodayGain(mockData.dailyGain[mockData.dailyGain.length - 1].gain);
       } else {
         const [accountsData, watchedAccountsData] = await Promise.all([
           getMyAccounts(session),
@@ -111,6 +115,8 @@ const PortfolioPage = () => {
           setDailyGain(dailyGainData);
           setTotalGain(totalGainData);
           setOpenOrders(openOrdersData);
+          setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
+          setTodayGain(dailyGainData[dailyGainData.length - 1].gain);
         }
       }
     } catch (err) {
@@ -199,11 +205,38 @@ const PortfolioPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Portfolio</CardTitle>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{accounts.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Gain</CardTitle>
             <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalGain.toFixed(2)}%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today's Gain</CardTitle>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{todayGain.toFixed(2)}%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
@@ -220,25 +253,23 @@ const PortfolioPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  Daily Gain
-                  <div className="flex space-x-2">
-                    <Calendar
-                      mode="single"
-                      selected={dateRange.from}
-                      onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
-                      className="rounded-md border"
-                    />
-                    <Calendar
-                      mode="single"
-                      selected={dateRange.to}
-                      onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
-                      className="rounded-md border"
-                    />
-                  </div>
-                </CardTitle>
+                <CardTitle>Daily Gain</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="flex justify-between items-center mb-4">
+                  <Calendar
+                    mode="single"
+                    selected={dateRange.from}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                    className="rounded-md border"
+                  />
+                  <Calendar
+                    mode="single"
+                    selected={dateRange.to}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                    className="rounded-md border"
+                  />
+                </div>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={dailyGain}>
                     <XAxis dataKey="date" />
@@ -248,6 +279,31 @@ const PortfolioPage = () => {
                     <Line type="monotone" dataKey="gain" stroke="#8884d8" />
                   </LineChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Portfolio List</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Gain</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accounts.map((account) => (
+                      <TableRow key={account.id}>
+                        <TableCell>{account.name}</TableCell>
+                        <TableCell>${account.balance.toFixed(2)}</TableCell>
+                        <TableCell>{account.gain.toFixed(2)}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </div>
@@ -287,7 +343,69 @@ const PortfolioPage = () => {
           </Card>
         </TabsContent>
 
-        {/* Add more tab content for history and watched accounts */}
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Open Date</TableHead>
+                    <TableHead>Close Date</TableHead>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Profit</TableHead>
+                    <TableHead>Pips</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tradeHistory.map((trade, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{trade.openDate}</TableCell>
+                      <TableCell>{trade.closeDate}</TableCell>
+                      <TableCell>{trade.symbol}</TableCell>
+                      <TableCell>{trade.action}</TableCell>
+                      <TableCell>{trade.profit}</TableCell>
+                      <TableCell>{trade.pips}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="watchedAccounts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Watched Accounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Gain</TableHead>
+                    <TableHead>Drawdown</TableHead>
+                    <TableHead>Change</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {watchedAccounts.map((account, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{account.name}</TableCell>
+                      <TableCell>{account.gain}%</TableCell>
+                      <TableCell>{account.drawdown}%</TableCell>
+                      <TableCell>{account.change}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
