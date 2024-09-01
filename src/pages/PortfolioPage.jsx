@@ -35,10 +35,10 @@ const PortfolioPage = () => {
         localStorage.setItem('sessionId', sessionId);
         fetchData(sessionId);
       } else {
-        throw new Error('Login failed');
+        throw new Error('Login failed. Please check your credentials and try again.');
       }
     } catch (err) {
-      setError('Login failed. Please check your credentials and try again.');
+      setError(err.message || 'An unexpected error occurred. Please try again.');
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
@@ -75,7 +75,7 @@ const PortfolioPage = () => {
       }
     } catch (err) {
       if (err.message.includes('Invalid session')) {
-        setError('Session expired. Please log in again.');
+        setError('Your session has expired. Please log in again.');
         setSession(null);
         localStorage.removeItem('sessionId');
       } else {
@@ -121,27 +121,37 @@ const PortfolioPage = () => {
 
   if (!session) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Card className="w-[300px]">
+      <div className="flex justify-center items-center h-screen bg-gray-100">
+        <Card className="w-[350px]">
           <CardHeader>
-            <CardTitle>Login to MyFXBook</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Login to MyFXBook</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Logging in...' : 'Login'}
               </Button>
@@ -165,7 +175,7 @@ const PortfolioPage = () => {
 
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" className="m-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
