@@ -235,3 +235,22 @@ export const logout = async (session) => {
     throw error;
   }
 };
+
+// Fetch open orders function
+export const getOpenOrders = async (session, id) => {
+  if (!session || !id) {
+    throw new Error('Session and account ID are required');
+  }
+  console.log('Fetching open orders with session:', session, 'and account ID:', id);
+  try {
+    const response = await apiCall('get-open-orders.xml', { session, id });
+    if (!response.orders || !response.orders.order) {
+      console.log('No open orders found.');
+      return [];
+    }
+    return Array.isArray(response.orders.order) ? response.orders.order : [response.orders.order];
+  } catch (error) {
+    console.error('Error fetching open orders:', error.message);
+    return [];
+  }
+};
