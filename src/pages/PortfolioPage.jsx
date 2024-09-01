@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { RefreshCw, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getMyAccounts, getOpenTrades, getDataDaily, getAccountHistory, getDailyGain, getTotalGain, logout } from '../services/myfxbookApi.jsx';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { login, getMyAccounts, getOpenTrades, getDataDaily, getAccountHistory, getDailyGain, getTotalGain, logout } from '../services/myfxbookApi.jsx';
 
 const PortfolioPage = () => {
   const [timeRange, setTimeRange] = useState('1M');
@@ -21,17 +22,33 @@ const PortfolioPage = () => {
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
 
-  useEffect(() => {
-    setSession("dummy-session");
+  const handleLogin = useCallback(async () => {
+    try {
+      const sessionId = await login();
+      if (sessionId) {
+        setSession(sessionId);
+        localStorage.setItem('sessionId', sessionId);
+      } else {
+        throw new Error('Login failed');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+      console.error('Login error:', err);
+    }
   }, []);
 
   useEffect(() => {
-    if (session) {
-      fetchData();
+    const storedSession = localStorage.getItem('sessionId');
+    if (storedSession) {
+      setSession(storedSession);
+    } else {
+      handleLogin();
     }
-  }, [session, timeRange, selectedAccount]);
+  }, [handleLogin]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (!session) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -58,11 +75,23 @@ const PortfolioPage = () => {
         setTotalGain(totalGainResult);
       }
     } catch (err) {
-      setError(err.message || 'Unable to fetch data. Please try again later.');
+      if (err.message.includes('Invalid session')) {
+        setError('Session expired. Please log in again.');
+        setSession(null);
+        localStorage.removeItem('sessionId');
+      } else {
+        setError(err.message || 'An error occurred while fetching data.');
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session, selectedAccount, timeRange]);
+
+  useEffect(() => {
+    if (session) {
+      fetchData();
+    }
+  }, [session, fetchData]);
 
   const getStartDate = () => {
     const now = new Date();
@@ -81,10 +110,30 @@ const PortfolioPage = () => {
     try {
       await logout(session);
       setSession(null);
+      localStorage.removeItem('sessionId');
+      setAccounts([]);
+      setSelectedAccount(null);
     } catch (err) {
       setError('Failed to logout. Please try again.');
     }
   };
+
+  if (!session) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Card className="w-[300px]">
+          <CardHeader>
+            <CardTitle>Login Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleLogin} className="w-full">
+              Login to MyFXBook
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading data...</div>;
@@ -92,14 +141,23 @@ const PortfolioPage = () => {
 
   if (error) {
     return (
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
-        <p className="font-bold">Warning</p>
-        <p>{error}</p>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
   const selectedAccountData = accounts.find(account => account['@_id'] === selectedAccount) || {};
+
+  const winRate = accountHistory.reduce((acc, trade) => {
+    return acc + (parseFloat(trade.profit) > 0 ? 1 : 0);
+  }, 0) / accountHistory.length * 100;
+
+  const averageProfitPerTrade = accountHistory.reduce((acc, trade) => {
+    return acc + parseFloat(trade.profit);
+  }, 0) / accountHistory.length;
 
   return (
     <div className="container mx-auto p-4">
@@ -229,6 +287,8 @@ const PortfolioPage = () => {
                 <TableHead>Symbol</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Lots</TableHead>
+                <TableHead>Open Price</TableHead>
+                <TableHead>Current Price</TableHead>
                 <TableHead>Profit</TableHead>
               </TableRow>
             </TableHeader>
@@ -239,7 +299,11 @@ const PortfolioPage = () => {
                   <TableCell>{trade.symbol}</TableCell>
                   <TableCell>{trade.type}</TableCell>
                   <TableCell>{trade.lots}</TableCell>
-                  <TableCell>{trade.profit}</TableCell>
+                  <TableCell>{trade.openPrice}</TableCell>
+                  <TableCell>{trade.currentPrice}</TableCell>
+                  <TableCell className={parseFloat(trade.profit) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {parseFloat(trade.profit).toFixed(2)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -255,6 +319,8 @@ const PortfolioPage = () => {
                 <TableHead>Symbol</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Lots</TableHead>
+                <TableHead>Open Time</TableHead>
+                <TableHead>Close Time</TableHead>
                 <TableHead>Profit</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,7 +331,11 @@ const PortfolioPage = () => {
                   <TableCell>{history.symbol}</TableCell>
                   <TableCell>{history.type}</TableCell>
                   <TableCell>{history.lots}</TableCell>
-                  <TableCell>{history.profit}</TableCell>
+                  <TableCell>{new Date(history.openTime).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(history.closeTime).toLocaleString()}</TableCell>
+                  <TableCell className={parseFloat(history.profit) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {parseFloat(history.profit).toFixed(2)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -282,14 +352,41 @@ const PortfolioPage = () => {
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie data={accountHistory} dataKey="profit" nameKey="symbol" cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
-                      {accountHistory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#82ca9d' : '#8884d8'} />
-                      ))}
+                    <Pie
+                      data={[
+                        { name: 'Win', value: winRate },
+                        { name: 'Loss', value: 100 - winRate }
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      label
+                    >
+                      <Cell key="cell-0" fill="#82ca9d" />
+                      <Cell key="cell-1" fill="#8884d8" />
                     </Pie>
                     <Tooltip />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
+                <p className="text-center mt-4">Win Rate: {winRate.toFixed(2)}%</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  <li>Total Trades: {accountHistory.length}</li>
+                  <li>Win Rate: {winRate.toFixed(2)}%</li>
+                  <li>Average Profit per Trade: ${averageProfitPerTrade.toFixed(2)}</li>
+                  <li>Best Trade: ${Math.max(...accountHistory.map(t => parseFloat(t.profit))).toFixed(2)}</li>
+                  <li>Worst Trade: ${Math.min(...accountHistory.map(t => parseFloat(t.profit))).toFixed(2)}</li>
+                </ul>
               </CardContent>
             </Card>
           </div>
