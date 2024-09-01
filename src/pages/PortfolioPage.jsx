@@ -11,7 +11,7 @@ import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
 import { login, getMyAccounts, getOpenTrades, getAccountHistory, getDailyGain, getTotalGain, logout, getWatchedAccounts, getOpenOrders } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
 import { Calendar } from "@/components/ui/calendar";
-import { addDays, format } from "date-fns";
+import { addDays, format, parseISO, isWithinInterval } from "date-fns";
 
 const PortfolioPage = () => {
   const [session, setSession] = useState('');
@@ -40,7 +40,7 @@ const PortfolioPage = () => {
     if (session) {
       fetchData();
     }
-  }, [session, selectedAccount]);
+  }, [session, selectedAccount, dateRange]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -89,11 +89,20 @@ const PortfolioPage = () => {
         setWatchedAccounts(mockData.watchedAccounts);
         setOpenTrades(mockData.openTrades);
         setTradeHistory(mockData.tradeHistory);
-        setDailyGain(mockData.dailyGain);
-        setTotalGain(mockData.totalGain);
+        
+        // Filter daily gain data based on the selected date range
+        const filteredDailyGain = mockData.dailyGain.filter(item => 
+          isWithinInterval(parseISO(item.date), { start: dateRange.from, end: dateRange.to })
+        );
+        setDailyGain(filteredDailyGain);
+        
+        // Calculate total gain for the selected period
+        const totalGainForPeriod = filteredDailyGain.reduce((sum, item) => sum + item.gain, 0);
+        setTotalGain(totalGainForPeriod);
+
         setOpenOrders(mockData.openOrders);
         setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
-        setTodayGain(mockData.dailyGain[mockData.dailyGain.length - 1].gain);
+        setTodayGain(filteredDailyGain[filteredDailyGain.length - 1]?.gain || 0);
       } else {
         const [accountsData, watchedAccountsData] = await Promise.all([
           getMyAccounts(session),
@@ -250,26 +259,27 @@ const PortfolioPage = () => {
         </TabsList>
 
         <TabsContent value="overview">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Daily Gain</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-between items-center mb-4">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.from}
-                    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
-                    className="rounded-md border"
-                  />
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.to}
-                    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
-                    className="rounded-md border"
-                  />
-                </div>
+              <div className="flex justify-center items-center space-x-4 mb-4">
+  <Calendar
+    mode="single"
+    selected={dateRange.from}
+    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+    className="rounded-md border"
+  />
+  <Calendar
+    mode="single"
+    selected={dateRange.to}
+    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+    className="rounded-md border"
+  />
+</div>
+
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={dailyGain}>
                     <XAxis dataKey="date" />
