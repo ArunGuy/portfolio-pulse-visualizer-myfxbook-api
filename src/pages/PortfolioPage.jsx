@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RefreshCw, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,42 +19,40 @@ const PortfolioPage = () => {
   const [dailyGain, setDailyGain] = useState([]);
   const [totalGain, setTotalGain] = useState(0);
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleLogin = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const sessionId = await login();
+      const sessionId = await login(email, password);
       if (sessionId) {
         setSession(sessionId);
         localStorage.setItem('sessionId', sessionId);
+        fetchData(sessionId);
       } else {
         throw new Error('Login failed');
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError('Login failed. Please check your credentials and try again.');
       console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [email, password]);
 
-  useEffect(() => {
-    const storedSession = localStorage.getItem('sessionId');
-    if (storedSession) {
-      setSession(storedSession);
-    } else {
-      handleLogin();
-    }
-  }, [handleLogin]);
-
-  const fetchData = useCallback(async () => {
-    if (!session) return;
+  const fetchData = useCallback(async (sessionId) => {
+    if (!sessionId) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const accountsData = await getMyAccounts(session);
+      const accountsData = await getMyAccounts(sessionId);
       setAccounts(accountsData);
       
       if (accountsData.length > 0) {
@@ -61,11 +60,11 @@ const PortfolioPage = () => {
         setSelectedAccount(defaultAccount);
 
         const [openTradesData, dailyDataResult, accountHistoryData, dailyGainData, totalGainResult] = await Promise.all([
-          getOpenTrades(session, defaultAccount),
-          getDataDaily(session, defaultAccount, getStartDate(), new Date().toISOString()),
-          getAccountHistory(session, defaultAccount),
-          getDailyGain(session, defaultAccount, getStartDate(), new Date().toISOString()),
-          getTotalGain(session, defaultAccount, getStartDate(), new Date().toISOString())
+          getOpenTrades(sessionId, defaultAccount),
+          getDataDaily(sessionId, defaultAccount, getStartDate(), new Date().toISOString()),
+          getAccountHistory(sessionId, defaultAccount),
+          getDailyGain(sessionId, defaultAccount, getStartDate(), new Date().toISOString()),
+          getTotalGain(sessionId, defaultAccount, getStartDate(), new Date().toISOString())
         ]);
 
         setOpenTrades(openTradesData);
@@ -85,13 +84,15 @@ const PortfolioPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [session, selectedAccount, timeRange]);
+  }, [selectedAccount, timeRange]);
 
   useEffect(() => {
-    if (session) {
-      fetchData();
+    const storedSession = localStorage.getItem('sessionId');
+    if (storedSession) {
+      setSession(storedSession);
+      fetchData(storedSession);
     }
-  }, [session, fetchData]);
+  }, [fetchData]);
 
   const getStartDate = () => {
     const now = new Date();
@@ -104,7 +105,7 @@ const PortfolioPage = () => {
     }
   };
 
-  const handleRefresh = () => fetchData();
+  const handleRefresh = () => fetchData(session);
 
   const handleLogout = async () => {
     try {
@@ -123,12 +124,35 @@ const PortfolioPage = () => {
       <div className="flex justify-center items-center h-screen">
         <Card className="w-[300px]">
           <CardHeader>
-            <CardTitle>Login Required</CardTitle>
+            <CardTitle>Login to MyFXBook</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button onClick={handleLogin} className="w-full">
-              Login to MyFXBook
-            </Button>
+            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
+            </form>
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       </div>

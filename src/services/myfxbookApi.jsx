@@ -53,10 +53,7 @@ const apiCall = async (endpoint, params) => {
 };
 
 // Login function
-export const login = async () => {
-  const email = 'arunwichchusin@hotmail.com';
-  const password = 'Mas050322566';
-
+export const login = async (email, password) => {
   console.log('Attempting to login with email:', email);
   try {
     const response = await apiCall('login.xml', { email, password });
@@ -238,23 +235,3 @@ export const logout = async (session) => {
     throw error;
   }
 };
-
-// Example usage
-const main = async () => {
-  try {
-    const session = await login();
-    if (session) {
-      console.log('Session ID:', session);
-      const accounts = await getMyAccounts(session);
-      console.log('My accounts:', accounts);
-      // Add more API calls here as needed
-      await logout(session);
-    } else {
-      console.error('Login failed. Unable to proceed with API calls.');
-    }
-  } catch (error) {
-    console.error('An error occurred:', error.message);
-  }
-};
-
-main();
