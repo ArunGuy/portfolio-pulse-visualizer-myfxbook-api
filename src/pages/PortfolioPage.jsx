@@ -1,133 +1,114 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { RefreshCw, ArrowUpRight, ArrowDownRight, AlertCircle } from "lucide-react";
 import { login, getMyAccounts, getOpenTrades, getDataDaily, getAccountHistory, getDailyGain, getTotalGain, logout } from '../services/myfxbookApi.jsx';
+import { mockData } from '../mockData.js';
 
 const PortfolioPage = () => {
-  const [timeRange, setTimeRange] = useState('1M');
-  const [accounts, setAccounts] = useState([]);
-  const [openTrades, setOpenTrades] = useState([]);
-  const [dailyData, setDailyData] = useState([]);
-  const [accountHistory, setAccountHistory] = useState([]);
-  const [dailyGain, setDailyGain] = useState([]);
-  const [totalGain, setTotalGain] = useState(0);
-  const [selectedAccount, setSelectedAccount] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [session, setSession] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [session, setSession] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [openTrades, setOpenTrades] = useState([]);
+  const [tradeHistory, setTradeHistory] = useState([]);
+  const [dailyGain, setDailyGain] = useState([]);
+  const [totalGain, setTotalGain] = useState(0);
+  const [watchedAccounts, setWatchedAccounts] = useState([]);
+  const [openOrders, setOpenOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleLogin = useCallback(async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setIsLoading(true);
     setError(null);
+
     try {
-      const sessionId = await login(email, password);
-      if (sessionId) {
-        setSession(sessionId);
-        localStorage.setItem('sessionId', sessionId);
-        fetchData(sessionId);
+      if (email === mockData.email && password === mockData.password) {
+        // Use mock data
+        setSession(mockData.session);
+        setAccounts(mockData.accounts);
+        setWatchedAccounts(mockData.watchedAccounts);
+        setOpenOrders(mockData.openOrders);
+        setOpenTrades(mockData.openTrades);
+        setTradeHistory(mockData.tradeHistory);
+        setDailyGain(mockData.dailyGain);
+        setTotalGain(mockData.totalGain);
+        setSelectedAccount(mockData.accounts[0].id);
       } else {
-        throw new Error('Login failed. Please check your credentials and try again.');
+        // Use real API
+        const sessionId = await login(email, password);
+        if (sessionId) {
+          setSession(sessionId);
+          await fetchData(sessionId);
+        } else {
+          throw new Error('Login failed. Please check your credentials and try again.');
+        }
       }
     } catch (err) {
       setError(err.message || 'An unexpected error occurred. Please try again.');
-      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [email, password]);
+  };
 
-  const fetchData = useCallback(async (sessionId) => {
-    if (!sessionId) return;
-
-    setIsLoading(true);
-    setError(null);
-
+  const fetchData = async (sessionId) => {
     try {
       const accountsData = await getMyAccounts(sessionId);
       setAccounts(accountsData);
-      
       if (accountsData.length > 0) {
-        const defaultAccount = selectedAccount || accountsData[0]['@_id'];
+        const defaultAccount = accountsData[0]['@_id'];
         setSelectedAccount(defaultAccount);
-
-        const [openTradesData, dailyDataResult, accountHistoryData, dailyGainData, totalGainResult] = await Promise.all([
+        const [openTradesData, historyData, dailyGainData, totalGainResult] = await Promise.all([
           getOpenTrades(sessionId, defaultAccount),
-          getDataDaily(sessionId, defaultAccount, getStartDate(), new Date().toISOString()),
           getAccountHistory(sessionId, defaultAccount),
           getDailyGain(sessionId, defaultAccount, getStartDate(), new Date().toISOString()),
           getTotalGain(sessionId, defaultAccount, getStartDate(), new Date().toISOString())
         ]);
-
         setOpenTrades(openTradesData);
-        setDailyData(dailyDataResult);
-        setAccountHistory(accountHistoryData);
+        setTradeHistory(historyData);
         setDailyGain(dailyGainData);
         setTotalGain(totalGainResult);
       }
     } catch (err) {
-      if (err.message.includes('Invalid session')) {
-        setError('Your session has expired. Please log in again.');
-        setSession(null);
-        localStorage.removeItem('sessionId');
-      } else {
-        setError(err.message || 'An error occurred while fetching data.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedAccount, timeRange]);
-
-  useEffect(() => {
-    const storedSession = localStorage.getItem('sessionId');
-    if (storedSession) {
-      setSession(storedSession);
-      fetchData(storedSession);
-    }
-  }, [fetchData]);
-
-  const getStartDate = () => {
-    const now = new Date();
-    switch (timeRange) {
-      case '1M': return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-      case '3M': return new Date(now.setMonth(now.getMonth() - 3)).toISOString();
-      case '6M': return new Date(now.setMonth(now.getMonth() - 6)).toISOString();
-      case '1Y': return new Date(now.setFullYear(now.getFullYear() - 1)).toISOString();
-      default: return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+      setError(err.message || 'An error occurred while fetching data.');
     }
   };
 
-  const handleRefresh = () => fetchData(session);
+  const getStartDate = () => {
+    const now = new Date();
+    return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+  };
 
-  const handleLogout = async () => {
-    try {
-      await logout(session);
-      setSession(null);
-      localStorage.removeItem('sessionId');
-      setAccounts([]);
-      setSelectedAccount(null);
-    } catch (err) {
-      setError('Failed to logout. Please try again.');
-    }
+  const handleLogout = () => {
+    setSession(null);
+    setAccounts([]);
+    setSelectedAccount(null);
+    setOpenTrades([]);
+    setTradeHistory([]);
+    setDailyGain([]);
+    setTotalGain(0);
+    setWatchedAccounts([]);
+    setOpenOrders([]);
   };
 
   if (!session) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-100">
-        <Card className="w-[350px]">
+        <Card className="w-[400px]">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center">Login to MyFXBook</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">Email</label>
                 <Input
@@ -137,7 +118,6 @@ const PortfolioPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -149,7 +129,6 @@ const PortfolioPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -169,79 +148,20 @@ const PortfolioPage = () => {
     );
   }
 
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading data...</div>;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  const selectedAccountData = accounts.find(account => account['@_id'] === selectedAccount) || {};
-
-  const winRate = accountHistory.reduce((acc, trade) => {
-    return acc + (parseFloat(trade.profit) > 0 ? 1 : 0);
-  }, 0) / accountHistory.length * 100;
-
-  const averageProfitPerTrade = accountHistory.reduce((acc, trade) => {
-    return acc + parseFloat(trade.profit);
-  }, 0) / accountHistory.length;
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Forex Portfolio Overview</h1>
-        <div className="flex items-center space-x-4">
-          <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map(account => (
-                <SelectItem key={account['@_id']} value={account['@_id']}>{account.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1M">1 Month</SelectItem>
-              <SelectItem value="3M">3 Months</SelectItem>
-              <SelectItem value="6M">6 Months</SelectItem>
-              <SelectItem value="1Y">1 Year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleRefresh}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-          </Button>
-          <Button onClick={handleLogout}>Logout</Button>
-        </div>
+        <Button onClick={handleLogout}>Logout</Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader>
             <CardTitle>Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">${parseFloat(selectedAccountData.balance).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Equity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${parseFloat(selectedAccountData.equity).toLocaleString()}</p>
+            <p className="text-2xl font-bold">${accounts[0]?.balance.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card>
@@ -263,167 +183,176 @@ const PortfolioPage = () => {
             <p className="text-2xl font-bold">{openTrades.length}</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Drawdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600">{accounts[0]?.drawdown.toFixed(2)}%</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="mb-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="trades">Trades</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
+          <TabsTrigger value="openTrades">Open Trades</TabsTrigger>
+          <TabsTrigger value="history">Trade History</TabsTrigger>
+          <TabsTrigger value="watchedAccounts">Watched Accounts</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Equity Growth</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dailyData}>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="equity" stroke="#8884d8" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Daily Gain</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={dailyGain}>
+                  <LineChart data={dailyGain}>
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="gain" fill="#82ca9d" />
-                  </BarChart>
+                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+                  </LineChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Open Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Symbol</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Open Price</TableHead>
+                      <TableHead>TP</TableHead>
+                      <TableHead>SL</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {openOrders.map((order, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{order.symbol}</TableCell>
+                        <TableCell>{order.action}</TableCell>
+                        <TableCell>{order.openPrice}</TableCell>
+                        <TableCell>{order.tp}</TableCell>
+                        <TableCell>{order.sl}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Trades Tab */}
-        <TabsContent value="trades">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Lots</TableHead>
-                <TableHead>Open Price</TableHead>
-                <TableHead>Current Price</TableHead>
-                <TableHead>Profit</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {openTrades.map(trade => (
-                <TableRow key={trade.id}>
-                  <TableCell>{trade.id}</TableCell>
-                  <TableCell>{trade.symbol}</TableCell>
-                  <TableCell>{trade.type}</TableCell>
-                  <TableCell>{trade.lots}</TableCell>
-                  <TableCell>{trade.openPrice}</TableCell>
-                  <TableCell>{trade.currentPrice}</TableCell>
-                  <TableCell className={parseFloat(trade.profit) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {parseFloat(trade.profit).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <TabsContent value="openTrades">
+          <Card>
+            <CardHeader>
+              <CardTitle>Open Trades</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Open Date</TableHead>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Profit</TableHead>
+                    <TableHead>Pips</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {openTrades.map((trade, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{new Date(trade.openDate).toLocaleString()}</TableCell>
+                      <TableCell>{trade.symbol}</TableCell>
+                      <TableCell>{trade.action}</TableCell>
+                      <TableCell className={trade.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {trade.profit.toFixed(2)}
+                      </TableCell>
+                      <TableCell>{trade.pips}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* History Tab */}
         <TabsContent value="history">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Lots</TableHead>
-                <TableHead>Open Time</TableHead>
-                <TableHead>Close Time</TableHead>
-                <TableHead>Profit</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accountHistory.map(history => (
-                <TableRow key={history.id}>
-                  <TableCell>{history.id}</TableCell>
-                  <TableCell>{history.symbol}</TableCell>
-                  <TableCell>{history.type}</TableCell>
-                  <TableCell>{history.lots}</TableCell>
-                  <TableCell>{new Date(history.openTime).toLocaleString()}</TableCell>
-                  <TableCell>{new Date(history.closeTime).toLocaleString()}</TableCell>
-                  <TableCell className={parseFloat(history.profit) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {parseFloat(history.profit).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Open Date</TableHead>
+                    <TableHead>Close Date</TableHead>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Profit</TableHead>
+                    <TableHead>Pips</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tradeHistory.map((trade, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{new Date(trade.openDate).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(trade.closeDate).toLocaleString()}</TableCell>
+                      <TableCell>{trade.symbol}</TableCell>
+                      <TableCell>{trade.action}</TableCell>
+                      <TableCell className={trade.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {trade.profit.toFixed(2)}
+                      </TableCell>
+                      <TableCell>{trade.pips}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Analysis Tab */}
-        <TabsContent value="analysis">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Win Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Win', value: winRate },
-                        { name: 'Loss', value: 100 - winRate }
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      label
-                    >
-                      <Cell key="cell-0" fill="#82ca9d" />
-                      <Cell key="cell-1" fill="#8884d8" />
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                <p className="text-center mt-4">Win Rate: {winRate.toFixed(2)}%</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  <li>Total Trades: {accountHistory.length}</li>
-                  <li>Win Rate: {winRate.toFixed(2)}%</li>
-                  <li>Average Profit per Trade: ${averageProfitPerTrade.toFixed(2)}</li>
-                  <li>Best Trade: ${Math.max(...accountHistory.map(t => parseFloat(t.profit))).toFixed(2)}</li>
-                  <li>Worst Trade: ${Math.min(...accountHistory.map(t => parseFloat(t.profit))).toFixed(2)}</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="watchedAccounts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Watched Accounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Gain</TableHead>
+                    <TableHead>Drawdown</TableHead>
+                    <TableHead>Change</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {watchedAccounts.map((account, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{account.name}</TableCell>
+                      <TableCell className={account.gain >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {account.gain.toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-red-600">{account.drawdown.toFixed(2)}%</TableCell>
+                      <TableCell className={account.change >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {account.change.toFixed(2)}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
