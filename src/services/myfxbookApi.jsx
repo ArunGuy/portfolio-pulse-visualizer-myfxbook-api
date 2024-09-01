@@ -25,7 +25,6 @@ const apiCall = async (endpoint, params) => {
       console.log(`Making API call to ${endpoint} with params:`, params);
       const response = await axios.get(`${BASE_URL}/${endpoint}`, { params });
 
-      // Check response status
       if (response.status !== 200) {
         throw new Error(`HTTP Error: ${response.status}`);
       }
@@ -35,8 +34,8 @@ const apiCall = async (endpoint, params) => {
       const parsedData = parseXmlResponse(response.data);
       console.log(`Parsed data from ${endpoint}:`, parsedData);
 
-      if (parsedData.error !== '0') {
-        throw new Error(`API Error: ${parsedData.message || 'Unknown error'}`);
+      if (parsedData["@_error"] === "true") {
+        throw new Error(`API Error: ${parsedData["@_message"] || 'Unknown error'}`);
       }
 
       return parsedData;
@@ -53,7 +52,7 @@ const apiCall = async (endpoint, params) => {
   }
 };
 
-// Login function with improved error handling
+// Login function
 export const login = async () => {
   const email = 'arunwichchusin@hotmail.com';
   const password = 'Mas050322566';
@@ -69,15 +68,24 @@ export const login = async () => {
       return null;
     }
   } catch (error) {
-    if (error.message.includes('Max login attempts reached')) {
-      console.error('Max login attempts reached. Please try to login via the website.');
-    } else {
-      console.error('Login error:', error.message);
-    }
-    return null;
+    console.error('Login error:', error.message);
+    throw error;
   }
 };
 
+// Validate session function
+export const validateSession = async (session) => {
+  if (!session) {
+    return false;
+  }
+  try {
+    await apiCall('get-my-accounts.xml', { session });
+    return true;
+  } catch (error) {
+    console.error('Session validation failed:', error.message);
+    return false;
+  }
+};
 
 // Fetch my accounts function
 export const getMyAccounts = async (session) => {
@@ -86,15 +94,18 @@ export const getMyAccounts = async (session) => {
   }
   console.log('Fetching my accounts with session:', session);
   try {
+    const isValidSession = await validateSession(session);
+    if (!isValidSession) {
+      throw new Error('Invalid session');
+    }
     const response = await apiCall('get-my-accounts.xml', { session });
-    console.log('Response from get-my-accounts.xml:', response);
     if (!response.accounts || !response.accounts.account) {
       throw new Error('No accounts data received from the API');
     }
     return Array.isArray(response.accounts.account) ? response.accounts.account : [response.accounts.account];
   } catch (error) {
     console.error('Error fetching accounts:', error.message);
-    return [];
+    throw error;
   }
 };
 
@@ -106,10 +117,9 @@ export const getOpenTrades = async (session, id) => {
   console.log('Fetching open trades with session:', session, 'and account ID:', id);
   try {
     const response = await apiCall('get-open-trades.xml', { session, id });
-    console.log('Response from get-open-trades.xml:', response);
     if (!response.trades || !response.trades.trade) {
       console.log('No open trades found.');
-      return []; // Return an empty array if no trades are found
+      return [];
     }
     return Array.isArray(response.trades.trade) ? response.trades.trade : [response.trades.trade];
   } catch (error) {
@@ -126,15 +136,85 @@ export const getDataDaily = async (session, id, start, end) => {
   console.log('Fetching daily data with session:', session, 'account ID:', id, 'start date:', start, 'end date:', end);
   try {
     const response = await apiCall('get-data-daily.xml', { session, id, start, end });
-    console.log('Response from get-data-daily.xml:', response);
     if (!response.dataDaily || !response.dataDaily.data) {
       console.log('No daily data found.');
-      return []; // Return an empty array if no daily data is found
+      return [];
     }
     return Array.isArray(response.dataDaily.data) ? response.dataDaily.data : [response.dataDaily.data];
   } catch (error) {
     console.error('Error fetching daily data:', error.message);
     return [];
+  }
+};
+
+// Fetch watched accounts function
+export const getWatchedAccounts = async (session) => {
+  if (!session) {
+    throw new Error('Session is required');
+  }
+  console.log('Fetching watched accounts with session:', session);
+  try {
+    const response = await apiCall('get-watched-accounts.xml', { session });
+    if (!response.accounts || !response.accounts.account) {
+      throw new Error('No watched accounts data received from the API');
+    }
+    return Array.isArray(response.accounts.account) ? response.accounts.account : [response.accounts.account];
+  } catch (error) {
+    console.error('Error fetching watched accounts:', error.message);
+    return [];
+  }
+};
+
+// Fetch account history function
+export const getAccountHistory = async (session, id) => {
+  if (!session || !id) {
+    throw new Error('Session and account ID are required');
+  }
+  console.log('Fetching account history with session:', session, 'and account ID:', id);
+  try {
+    const response = await apiCall('get-history.xml', { session, id });
+    if (!response.history || !response.history.transaction) {
+      console.log('No account history found.');
+      return [];
+    }
+    return Array.isArray(response.history.transaction) ? response.history.transaction : [response.history.transaction];
+  } catch (error) {
+    console.error('Error fetching account history:', error.message);
+    return [];
+  }
+};
+
+// Fetch daily gain function
+export const getDailyGain = async (session, id, start, end) => {
+  if (!session || !id || !start || !end) {
+    throw new Error('Session, account ID, start date, and end date are required');
+  }
+  console.log('Fetching daily gain with session:', session, 'account ID:', id, 'start date:', start, 'end date:', end);
+  try {
+    const response = await apiCall('get-daily-gain.xml', { session, id, start, end });
+    if (!response.dailyGain || !response.dailyGain.gain) {
+      console.log('No daily gain data found.');
+      return [];
+    }
+    return Array.isArray(response.dailyGain.gain) ? response.dailyGain.gain : [response.dailyGain.gain];
+  } catch (error) {
+    console.error('Error fetching daily gain:', error.message);
+    return [];
+  }
+};
+
+// Fetch total gain function
+export const getTotalGain = async (session, id, start, end) => {
+  if (!session || !id || !start || !end) {
+    throw new Error('Session, account ID, start date, and end date are required');
+  }
+  console.log('Fetching total gain with session:', session, 'account ID:', id, 'start date:', start, 'end date:', end);
+  try {
+    const response = await apiCall('get-gain.xml', { session, id, start, end });
+    return response.value || 0;
+  } catch (error) {
+    console.error('Error fetching total gain:', error.message);
+    return 0;
   }
 };
 
@@ -146,24 +226,35 @@ export const logout = async (session) => {
   console.log('Logging out with session:', session);
   try {
     const response = await apiCall('logout.xml', { session });
-    console.log('Response from logout.xml:', response);
-    const success = response.error === '0';
+    const success = response["@_error"] === "0";
     if (success) {
       console.log('Logout successful.');
     } else {
-      console.error('Logout failed. Error:', response.message || 'Unknown error');
+      console.error('Logout failed. Error:', response["@_message"] || 'Unknown error');
     }
     return success;
   } catch (error) {
     console.error('Logout error:', error.message);
-    return false;
+    throw error;
   }
 };
 
 // Example usage
-login().then(session => {
-  if (session) {
-    console.log('Session ID:', session);
-    // Proceed with other API calls using the session ID
+const main = async () => {
+  try {
+    const session = await login();
+    if (session) {
+      console.log('Session ID:', session);
+      const accounts = await getMyAccounts(session);
+      console.log('My accounts:', accounts);
+      // Add more API calls here as needed
+      await logout(session);
+    } else {
+      console.error('Login failed. Unable to proceed with API calls.');
+    }
+  } catch (error) {
+    console.error('An error occurred:', error.message);
   }
-});
+};
+
+main();
