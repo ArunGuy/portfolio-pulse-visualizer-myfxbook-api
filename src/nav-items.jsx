@@ -24,7 +24,7 @@ export const navItems = [
     page: <ContactUs />,
   },
   {
-    title: "Calculator",
+    title: "Compound Interest",
     to: "/calculator",
     icon: <Calculator className="h-4 w-4" />,
     page: <CompoundInterestCalculator />,
