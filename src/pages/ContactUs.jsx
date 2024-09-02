@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Facebook, Tiktok, Youtube } from 'lucide-react';
+import { Facebook, TiktokIcon, Youtube } from 'lucide-react';
 import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
 
 const ContactUs = () => {
@@ -44,7 +44,7 @@ const ContactUs = () => {
                 <Facebook size={48} />
               </a>
               <a href="https://www.tiktok.com/@mhagutsfund" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800">
-                <Tiktok size={48} />
+                <TiktokIcon size={48} />
               </a>
               <a href="https://www.youtube.com/@MoneyMoney9999-j6q" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-800">
                 <Youtube size={48} />
