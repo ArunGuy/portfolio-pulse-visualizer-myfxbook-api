@@ -4,31 +4,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Facebook, Tiktok, Youtube } from 'lucide-react';
+import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
 
 const ContactUs = () => {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Contact Us</h1>
-      <Card className="max-w-2xl mx-auto">
+    <div className="container mx-auto p-4 bg-gray-100 dark:bg-gray-900">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Contact Us</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-white dark:bg-gray-800">
+          <CardHeader>
+            <CardTitle className="text-gray-900 dark:text-gray-100">Get in Touch</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Name</Label>
+                <Input id="name" name="name" required className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
+                <Input type="email" id="email" name="email" required className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="message" className="text-gray-700 dark:text-gray-300">Message</Label>
+                <Textarea id="message" name="message" rows="4" required className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </div>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">Send Message</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card className="bg-white dark:bg-gray-800">
+          <CardHeader>
+            <CardTitle className="text-gray-900 dark:text-gray-100">Follow Us</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-around">
+              <a href="https://www.facebook.com/Mhagutsfund" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                <Facebook size={48} />
+              </a>
+              <a href="https://www.tiktok.com/@mhagutsfund" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800">
+                <Tiktok size={48} />
+              </a>
+              <a href="https://www.youtube.com/@MoneyMoney9999-j6q" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-800">
+                <Youtube size={48} />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="mt-6 bg-white dark:bg-gray-800">
         <CardHeader>
-          <CardTitle>Get in Touch</CardTitle>
+          <CardTitle className="text-gray-900 dark:text-gray-100">Compound Interest Calculator</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input type="email" id="email" name="email" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
-              <Textarea id="message" name="message" rows="4" required />
-            </div>
-            <Button type="submit">Send Message</Button>
-          </form>
+          <CompoundInterestCalculator />
         </CardContent>
       </Card>
     </div>
