@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
-import tiktokLogo from '../assets/images/tiktok-logo.png';
 import facebookLogo from '../assets/images/facebook-logo.png';
+import tiktokLogo from '../assets/images/tiktok-logo.png';
 import youtubeLogo from '../assets/images/youtube-logo.png';
 
 const ContactUs = () => {
