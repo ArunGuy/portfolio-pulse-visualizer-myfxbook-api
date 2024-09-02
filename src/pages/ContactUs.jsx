@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
-import tiktokLogo from '../assets/images/tiktok-logo.png';
 import facebookLogo from '../assets/images/facebook-logo.png';
+import tiktokLogo from '../assets/images/tiktok-logo.png';
 import youtubeLogo from '../assets/images/youtube-logo.png';
 
 const ContactUs = () => {
@@ -55,14 +54,6 @@ const ContactUs = () => {
           </CardContent>
         </Card>
       </div>
-      <Card className="mt-6 bg-white dark:bg-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-gray-100">Compound Interest Calculator</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CompoundInterestCalculator />
-        </CardContent>
-      </Card>
     </div>
   );
 };
