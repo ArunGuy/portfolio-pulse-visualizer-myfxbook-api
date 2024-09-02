@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Facebook, TiktokIcon, Youtube } from 'lucide-react';
 import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
+import tiktokLogo from '../assets/images/tiktok-logo.png';
+import facebookLogo from '../assets/images/facebook-logo.png';
+import youtubeLogo from '../assets/images/youtube-logo.png';
 
 const ContactUs = () => {
   return (
@@ -41,13 +43,13 @@ const ContactUs = () => {
           <CardContent>
             <div className="flex justify-around">
               <a href="https://www.facebook.com/Mhagutsfund" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                <Facebook size={48} />
+                <img src={facebookLogo} alt="Facebook" className="w-16 h-16" />
               </a>
               <a href="https://www.tiktok.com/@mhagutsfund" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800">
-                <TiktokIcon size={48} />
+                <img src={tiktokLogo} alt="TikTok" className="w-16 h-16" />
               </a>
               <a href="https://www.youtube.com/@MoneyMoney9999-j6q" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-800">
-                <Youtube size={48} />
+                <img src={youtubeLogo} alt="YouTube" className="w-16 h-16" />
               </a>
             </div>
           </CardContent>
