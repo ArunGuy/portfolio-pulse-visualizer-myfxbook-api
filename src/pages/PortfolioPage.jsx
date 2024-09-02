@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Cell } from 'recharts';
 import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { login, getMyAccounts, getDailyGain, getTotalGain, logout, getWatchedAccounts } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
-import CompoundInterestCalculator from '../components/CompoundInterestCalculator';
 
 const PortfolioPage = () => {
   const [session, setSession] = useState('');
@@ -20,6 +20,7 @@ const PortfolioPage = () => {
   const [password, setPassword] = useState('');
   const [useMockData, setUseMockData] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [chartType, setChartType] = useState('bar');
 
   useEffect(() => {
     if (session) {
@@ -135,6 +136,62 @@ const PortfolioPage = () => {
     </div>
   );
 
+  const renderChart = () => {
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+
+    switch (chartType) {
+      case 'bar':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart layout="vertical" data={accounts}>
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="gain" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      case 'line':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={accounts}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+      case 'pie':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={accounts}
+                dataKey="gain"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={150}
+                fill="#8884d8"
+                label
+              >
+                {accounts.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+      default:
+        return null;
+    }
+  };
+
   const renderDashboard = () => (
     <div className="container mx-auto p-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <div className="flex justify-between items-center mb-6">
@@ -188,28 +245,21 @@ const PortfolioPage = () => {
 
       <div className="grid grid-cols-1 gap-6">
         <Card className="bg-white dark:bg-gray-800">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Portfolio Gain Comparison</CardTitle>
+            <Select value={chartType} onValueChange={setChartType}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select chart type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bar">Bar Chart</SelectItem>
+                <SelectItem value="line">Line Chart</SelectItem>
+                <SelectItem value="pie">Pie Chart</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={accounts}>
-                <XAxis dataKey="name" stroke="#888888" />
-                <YAxis stroke="#888888" />
-                <Tooltip />
-                <Legend />
-                {accounts.map((account, index) => (
-                  <Line
-                    key={account.id}
-                    type="monotone"
-                    dataKey="gain"
-                    data={[account]}
-                    name={account.name}
-                    stroke={`hsl(${index * 360 / accounts.length}, 70%, 50%)`}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            {renderChart()}
           </CardContent>
         </Card>
         <Card className="bg-white dark:bg-gray-800">
@@ -262,14 +312,6 @@ const PortfolioPage = () => {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-        <Card className="bg-white dark:bg-gray-800">
-          <CardHeader>
-            <CardTitle>Compound Interest Calculator</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CompoundInterestCalculator />
           </CardContent>
         </Card>
       </div>
