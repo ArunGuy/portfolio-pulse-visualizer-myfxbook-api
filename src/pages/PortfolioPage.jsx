@@ -12,7 +12,6 @@ const PortfolioPage = () => {
   const [session, setSession] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [watchedAccounts, setWatchedAccounts] = useState([]);
-  const [dailyGain, setDailyGain] = useState([]);
   const [totalGain, setTotalGain] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +19,6 @@ const PortfolioPage = () => {
   const [password, setPassword] = useState('');
   const [useMockData, setUseMockData] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
-  const [todayGain, setTodayGain] = useState(0);
 
   useEffect(() => {
     if (session) {
@@ -56,7 +54,6 @@ const PortfolioPage = () => {
       setSession('');
       setAccounts([]);
       setWatchedAccounts([]);
-      setDailyGain([]);
       setTotalGain(0);
       setUseMockData(false);
     } catch (err) {
@@ -71,23 +68,18 @@ const PortfolioPage = () => {
       if (useMockData) {
         setAccounts(mockData.accounts);
         setWatchedAccounts(mockData.watchedAccounts);
-        setDailyGain(mockData.dailyGain);
         setTotalGain(mockData.totalGain);
         setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
-        setTodayGain(mockData.dailyGain[mockData.dailyGain.length - 1]?.gain || 0);
       } else {
-        const [accountsData, watchedAccountsData, dailyGainData, totalGainData] = await Promise.all([
+        const [accountsData, watchedAccountsData, totalGainData] = await Promise.all([
           getMyAccounts(session),
           getWatchedAccounts(session),
-          getDailyGain(session),
           getTotalGain(session)
         ]);
         setAccounts(accountsData);
         setWatchedAccounts(watchedAccountsData);
-        setDailyGain(dailyGainData);
         setTotalGain(totalGainData);
         setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
-        setTodayGain(dailyGainData[dailyGainData.length - 1]?.gain || 0);
       }
     } catch (err) {
       setError('Failed to fetch data. Please try again.');
@@ -97,7 +89,7 @@ const PortfolioPage = () => {
   };
 
   const renderLoginForm = () => (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-96">
         <CardHeader>
           <CardTitle>Login to MyFXBook</CardTitle>
@@ -112,7 +104,7 @@ const PortfolioPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-background text-foreground"
               />
             </div>
             <div className="space-y-2">
@@ -123,7 +115,7 @@ const PortfolioPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-background text-foreground"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -145,7 +137,7 @@ const PortfolioPage = () => {
   const renderDashboard = () => (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold dark:text-white">MyFXBook Portfolio</h1>
+        <h1 className="text-3xl font-bold">MyFXBook Portfolio</h1>
         <div className="flex items-center space-x-4">
           <Button onClick={fetchData} disabled={loading}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
@@ -179,15 +171,6 @@ const PortfolioPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalGain.toFixed(2)}%</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Gain</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{todayGain.toFixed(2)}%</div>
           </CardContent>
         </Card>
         <Card>
