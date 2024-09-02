@@ -1,46 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
-import { login, getMyAccounts, getOpenTrades, getAccountHistory, getDailyGain, getTotalGain, logout, getWatchedAccounts, getOpenOrders } from '../services/myfxbookApi.jsx';
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { login, getMyAccounts, getDailyGain, getTotalGain, logout, getWatchedAccounts } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
-import { Calendar } from "@/components/ui/calendar";
-import { addDays, format, parseISO, isWithinInterval } from "date-fns";
 
 const PortfolioPage = () => {
   const [session, setSession] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [watchedAccounts, setWatchedAccounts] = useState([]);
-  const [openTrades, setOpenTrades] = useState([]);
-  const [tradeHistory, setTradeHistory] = useState([]);
   const [dailyGain, setDailyGain] = useState([]);
   const [totalGain, setTotalGain] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedAccount, setSelectedAccount] = useState('');
-  const [openOrders, setOpenOrders] = useState([]);
   const [useMockData, setUseMockData] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
   const [todayGain, setTodayGain] = useState(0);
-
-  const [dateRange, setDateRange] = useState({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  });
 
   useEffect(() => {
     if (session) {
       fetchData();
     }
-  }, [session, selectedAccount, dateRange]);
+  }, [session]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -70,8 +56,6 @@ const PortfolioPage = () => {
       setSession('');
       setAccounts([]);
       setWatchedAccounts([]);
-      setOpenTrades([]);
-      setTradeHistory([]);
       setDailyGain([]);
       setTotalGain(0);
       setUseMockData(false);
@@ -87,46 +71,23 @@ const PortfolioPage = () => {
       if (useMockData) {
         setAccounts(mockData.accounts);
         setWatchedAccounts(mockData.watchedAccounts);
-        setOpenTrades(mockData.openTrades);
-        setTradeHistory(mockData.tradeHistory);
-        
-        // Filter daily gain data based on the selected date range
-        const filteredDailyGain = mockData.dailyGain.filter(item => 
-          isWithinInterval(parseISO(item.date), { start: dateRange.from, end: dateRange.to })
-        );
-        setDailyGain(filteredDailyGain);
-        
-        // Calculate total gain for the selected period
-        const totalGainForPeriod = filteredDailyGain.reduce((sum, item) => sum + item.gain, 0);
-        setTotalGain(totalGainForPeriod);
-
-        setOpenOrders(mockData.openOrders);
+        setDailyGain(mockData.dailyGain);
+        setTotalGain(mockData.totalGain);
         setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
-        setTodayGain(filteredDailyGain[filteredDailyGain.length - 1]?.gain || 0);
+        setTodayGain(mockData.dailyGain[mockData.dailyGain.length - 1]?.gain || 0);
       } else {
-        const [accountsData, watchedAccountsData] = await Promise.all([
+        const [accountsData, watchedAccountsData, dailyGainData, totalGainData] = await Promise.all([
           getMyAccounts(session),
-          getWatchedAccounts(session)
+          getWatchedAccounts(session),
+          getDailyGain(session),
+          getTotalGain(session)
         ]);
         setAccounts(accountsData);
         setWatchedAccounts(watchedAccountsData);
-
-        if (selectedAccount) {
-          const [openTradesData, tradeHistoryData, dailyGainData, totalGainData, openOrdersData] = await Promise.all([
-            getOpenTrades(session, selectedAccount),
-            getAccountHistory(session, selectedAccount),
-            getDailyGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
-            getTotalGain(session, selectedAccount, format(dateRange.from, 'yyyy-MM-dd'), format(dateRange.to, 'yyyy-MM-dd')),
-            getOpenOrders(session, selectedAccount)
-          ]);
-          setOpenTrades(openTradesData);
-          setTradeHistory(tradeHistoryData);
-          setDailyGain(dailyGainData);
-          setTotalGain(totalGainData);
-          setOpenOrders(openOrdersData);
-          setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
-          setTodayGain(dailyGainData[dailyGainData.length - 1].gain);
-        }
+        setDailyGain(dailyGainData);
+        setTotalGain(totalGainData);
+        setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
+        setTodayGain(dailyGainData[dailyGainData.length - 1]?.gain || 0);
       }
     } catch (err) {
       setError('Failed to fetch data. Please try again.');
@@ -136,7 +97,7 @@ const PortfolioPage = () => {
   };
 
   const renderLoginForm = () => (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <Card className="w-96">
         <CardHeader>
           <CardTitle>Login to MyFXBook</CardTitle>
@@ -145,22 +106,24 @@ const PortfolioPage = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <Input
+              <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full p-2 border rounded"
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">Password</label>
-              <Input
+              <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="w-full p-2 border rounded"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -182,20 +145,8 @@ const PortfolioPage = () => {
   const renderDashboard = () => (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">MyFXBook Portfolio</h1>
+        <h1 className="text-3xl font-bold dark:text-white">MyFXBook Portfolio</h1>
         <div className="flex items-center space-x-4">
-          <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button onClick={fetchData} disabled={loading}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
@@ -250,173 +201,85 @@ const PortfolioPage = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="openTrades">Open Trades</TabsTrigger>
-          <TabsTrigger value="history">Trade History</TabsTrigger>
-          <TabsTrigger value="watchedAccounts">Watched Accounts</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Daily Gain</CardTitle>
-              </CardHeader>
-              <CardContent>
-              <div className="flex justify-center items-center space-x-4 mb-4">
-  <Calendar
-    mode="single"
-    selected={dateRange.from}
-    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
-    className="rounded-md border"
-  />
-  <Calendar
-    mode="single"
-    selected={dateRange.to}
-    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
-    className="rounded-md border"
-  />
-</div>
-
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dailyGain}>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio List</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Gain</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {accounts.map((account) => (
-                      <TableRow key={account.id}>
-                        <TableCell>{account.name}</TableCell>
-                        <TableCell>${account.balance.toFixed(2)}</TableCell>
-                        <TableCell>{account.gain.toFixed(2)}%</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="openTrades">
-          <Card>
-            <CardHeader>
-              <CardTitle>Open Trades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Open Date</TableHead>
-                    <TableHead>Symbol</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Open Price</TableHead>
-                    <TableHead>Profit</TableHead>
-                    <TableHead>Pips</TableHead>
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Gain Comparison</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={accounts}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                {accounts.map((account, index) => (
+                  <Line
+                    key={account.id}
+                    type="monotone"
+                    dataKey="gain"
+                    data={[account]}
+                    name={account.name}
+                    stroke={`hsl(${index * 360 / accounts.length}, 70%, 50%)`}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Gain</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {accounts.map((account) => (
+                  <TableRow key={account.id}>
+                    <TableCell>{account.name}</TableCell>
+                    <TableCell>${account.balance.toFixed(2)}</TableCell>
+                    <TableCell>{account.gain.toFixed(2)}%</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {openTrades.map((trade, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{trade.openDate}</TableCell>
-                      <TableCell>{trade.symbol}</TableCell>
-                      <TableCell>{trade.action}</TableCell>
-                      <TableCell>{trade.openPrice}</TableCell>
-                      <TableCell>{trade.profit}</TableCell>
-                      <TableCell>{trade.pips}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Trade History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Open Date</TableHead>
-                    <TableHead>Close Date</TableHead>
-                    <TableHead>Symbol</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Profit</TableHead>
-                    <TableHead>Pips</TableHead>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Watched Accounts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Gain</TableHead>
+                  <TableHead>Drawdown</TableHead>
+                  <TableHead>Change</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {watchedAccounts.map((account, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{account.name}</TableCell>
+                    <TableCell>{account.gain}%</TableCell>
+                    <TableCell>{account.drawdown}%</TableCell>
+                    <TableCell>{account.change}%</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tradeHistory.map((trade, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{trade.openDate}</TableCell>
-                      <TableCell>{trade.closeDate}</TableCell>
-                      <TableCell>{trade.symbol}</TableCell>
-                      <TableCell>{trade.action}</TableCell>
-                      <TableCell>{trade.profit}</TableCell>
-                      <TableCell>{trade.pips}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="watchedAccounts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Watched Accounts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Gain</TableHead>
-                    <TableHead>Drawdown</TableHead>
-                    <TableHead>Change</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {watchedAccounts.map((account, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{account.name}</TableCell>
-                      <TableCell>{account.gain}%</TableCell>
-                      <TableCell>{account.drawdown}%</TableCell>
-                      <TableCell>{account.change}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 
