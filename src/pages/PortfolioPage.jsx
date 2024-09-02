@@ -112,13 +112,15 @@ const PortfolioPage = () => {
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
               <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
+  id="password"
+  type="password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  required
+  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+  autocomplete="current-password"
+/>
+
             </div>
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
