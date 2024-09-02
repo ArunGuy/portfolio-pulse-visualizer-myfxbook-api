@@ -1,5 +1,5 @@
 import React from 'react';
-import dogIcon from '../assets/images/dog-icon.png';
+import dogSuitImage from '../assets/images/dog-suit.jpg';
 
 const Index = () => {
   return (
@@ -9,9 +9,9 @@ const Index = () => {
           mhagutsfund
         </h1>
         <img
-          src={dogIcon}
+          src={dogSuitImage}
           alt="Mascot"
-          className="w-64 h-64 object-contain mx-auto"
+          className="w-64 h-64 object-cover mx-auto rounded-full"
         />
         <p className="text-xl text-gray-600 dark:text-gray-400 mt-8">
           Your trusted partner in financial growth
