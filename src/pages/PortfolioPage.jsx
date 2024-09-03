@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, getMyAccounts, getDailyGain, logout, getWatchedAccounts } from '../services/myfxbookApi.jsx';
+import { login, getMyAccounts, getWatchedAccounts, logout } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
 
 const PortfolioPage = () => {
@@ -16,21 +16,36 @@ const PortfolioPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [watchedAccounts, setWatchedAccounts] = useState([]);
   const [totalGain, setTotalGain] = useState(0);
+  const [totalBalance, setTotalBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [useMockData, setUseMockData] = useState(false);
-  const [totalBalance, setTotalBalance] = useState(0);
   const [chartType, setChartType] = useState('bar');
 
   useEffect(() => {
     const storedSession = localStorage.getItem('sessionId');
     if (storedSession) {
       setSession(storedSession);
-      fetchData(storedSession);
+      validateSession(storedSession);
     }
   }, []);
+
+  const validateSession = async (sessionId) => {
+    try {
+      const response = await fetch('/api/validate-session', { headers: { 'Authorization': `Bearer ${sessionId}` } });
+      if (response.ok) {
+        fetchData(sessionId);
+      } else {
+        throw new Error('Invalid session');
+      }
+    } catch (err) {
+      handleLogout();
+      setError('Session validation failed. Please log in again.');
+      console.error('Session validation error:', err);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -66,6 +81,7 @@ const PortfolioPage = () => {
       setAccounts([]);
       setWatchedAccounts([]);
       setTotalGain(0);
+      setTotalBalance(0);
       setUseMockData(false);
       localStorage.removeItem('sessionId');
     } catch (err) {
@@ -197,128 +213,63 @@ const PortfolioPage = () => {
             </Card>
           </div>
           <Card className="mb-6">
-  <CardHeader>
-    <CardTitle>My Accounts</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Balance</TableHead>
-          <TableHead>Gain</TableHead>
-          <TableHead>Drawdown</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {accounts && accounts.length > 0 ? (
-          accounts.map((account) => (
-            <TableRow key={account.id}>
-              <TableCell>{account.name}</TableCell>
-              <TableCell>${account.balance.toFixed(2)}</TableCell>
-              <TableCell>{account.gain.toFixed(2)}%</TableCell>
-              <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
-            </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={4} style={{ textAlign: 'center' }}>
-              No account data available
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
-  </CardContent>
-</Card>
-
-
-<Card className="mb-6">
-  <CardHeader>
-    <CardTitle>Watched Accounts</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Gain</TableHead>
-          <TableHead>Drawdown</TableHead>
-          <TableHead>Change</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {watchedAccounts && watchedAccounts.length > 0 ? (
-          watchedAccounts.map((account, index) => (
-            <TableRow key={index}>
-              <TableCell>{account.name}</TableCell>
-              <TableCell>{account.gain.toFixed(2)}%</TableCell>
-              <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
-              <TableCell>{account.change.toFixed(2)}%</TableCell>
-            </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={4} style={{ textAlign: 'center' }}>
-              No watched accounts data available
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
-  </CardContent>
-</Card>
-
-
-          <div className="flex justify-end mb-4">
-            <Select
-              value={chartType}
-              onValueChange={(value) => setChartType(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select chart type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bar">Bar Chart</SelectItem>
-                <SelectItem value="line">Line Chart</SelectItem>
-                <SelectItem value="pie">Pie Chart</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="mb-6">
-            {chartType === 'bar' && (
+            <CardHeader>
+              <CardTitle>My Accounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Gain</TableHead>
+                    <TableHead>Balance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {accounts.map((account) => (
+                    <TableRow key={account.id}>
+                      <TableCell>{account.name}</TableCell>
+                      <TableCell>{account.gain.toFixed(2)}%</TableCell>
+                      <TableCell>${account.balance.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Chart</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={chartType} onValueChange={setChartType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select chart type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bar">Bar Chart</SelectItem>
+                  <SelectItem value="line">Line Chart</SelectItem>
+                </SelectContent>
+              </Select>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={getChartData()}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="gain" fill="#8884d8" />
-                </BarChart>
+                {chartType === 'bar' ? (
+                  <BarChart data={getChartData()}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="gain" fill="#8884d8" />
+                  </BarChart>
+                ) : (
+                  <LineChart data={getChartData()}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
-            )}
-            {chartType === 'line' && (
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={getChartData()}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="gain" stroke="#8884d8" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-            {chartType === 'pie' && (
-              <ResponsiveContainer width="100%" height={400}>
-                <PieChart>
-                  <Pie data={getChartData()} dataKey="gain" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label />
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

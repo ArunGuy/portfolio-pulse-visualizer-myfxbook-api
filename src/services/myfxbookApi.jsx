@@ -34,9 +34,22 @@ const apiCall = async (endpoint, params, retries = 3) => {
   }
 };
 
+const clearSession = () => {
+  localStorage.removeItem('sessionId');
+};
+
 export const login = async (email, password) => {
-  const response = await apiCall('login.xml', { email, password });
-  return response.session;
+  try {
+    const response = await apiCall('login.xml', { email, password });
+    if (!response.session) {
+      throw new Error('Login failed. No session returned.');
+    }
+    localStorage.setItem('sessionId', response.session); // Store session ID
+    return response.session;
+  } catch (error) {
+    console.error('Login error:', error.message);
+    throw error;
+  }
 };
 
 export const getMyAccounts = async (session) => {
@@ -82,7 +95,29 @@ export const getTotalGain = async (session, id) => {
   }
 };
 
-export const logout = async (session) => {
-  await apiCall('logout.xml', { session });
-  return true;
+export const logout = async () => {
+  const session = localStorage.getItem('sessionId');
+  if (!session) {
+    console.warn('No session found for logout');
+    clearSession();
+    return true; // หรือ handle ตามที่เหมาะสม
+  }
+  
+  try {
+    const response = await apiCall('logout.xml', { session });
+    if (response["@_error"] === "true") {
+      console.error(`Error during logout: ${response["@_message"]}`);
+      // ตรวจสอบว่าถ้าเซสชันหมดอายุหรือไม่
+      if (response["@_message"].includes("Invalid session")) {
+        clearSession(); // ล้างเซสชันที่หมดอายุ
+      }
+    } else {
+      clearSession(); // Clear session ID from local storage
+      return true;
+    }
+  } catch (error) {
+    console.error('Error in logout:', error.message);
+  }
+  
+  return false;
 };
