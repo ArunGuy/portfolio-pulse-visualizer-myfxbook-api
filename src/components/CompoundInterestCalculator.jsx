@@ -18,24 +18,23 @@ const CompoundInterestCalculator = () => {
 
   const calculateCompoundInterest = () => {
     const principal = parseFloat(startBalance);
-    const rate = parseFloat(interestRate) / 100;
+    const monthlyRate = parseFloat(interestRate) / 100; // ใช้อัตราดอกเบี้ยรายเดือน
     const totalMonths = parseInt(years) * 12 + parseInt(months);
-    const periodsPerYear = compoundingFrequency === 'Monthly' ? 12 : 1;
     const additionalPerPeriod = parseFloat(additionalContribution) || 0;
-
+    
     let balance = principal;
     let totalDeposits = principal;
     const monthlyBreakdown = [];
-
+    
     for (let month = 1; month <= totalMonths; month++) {
-      const interestEarned = balance * (rate / periodsPerYear);
+      const interestEarned = balance * monthlyRate; // คำนวณดอกเบี้ยรายเดือน
       balance += interestEarned;
-
+      
       if (contributionFrequency === 'monthly' || (contributionFrequency === 'yearly' && month % 12 === 0)) {
         balance += additionalPerPeriod;
         totalDeposits += additionalPerPeriod;
       }
-
+      
       monthlyBreakdown.push({
         month,
         balance: balance.toFixed(2),
@@ -43,10 +42,10 @@ const CompoundInterestCalculator = () => {
         totalDeposits: totalDeposits.toFixed(2),
       });
     }
-
+    
     const totalEarnings = balance - totalDeposits;
     const timeWeightedReturn = ((balance / totalDeposits) - 1) * 100;
-
+    
     setResult({
       futureValue: balance.toFixed(2),
       totalEarnings: totalEarnings.toFixed(2),
@@ -55,12 +54,14 @@ const CompoundInterestCalculator = () => {
       monthlyBreakdown,
     });
   };
+  
+  
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="startBalance">Start balance ($)</Label>
+          <Label htmlFor="startBalance">ยอดเริ่มต้น ($)</Label>
           <Input
             id="startBalance"
             type="number"
@@ -70,7 +71,7 @@ const CompoundInterestCalculator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="interestRate">Interest rate (%)</Label>
+          <Label htmlFor="interestRate">อัตราดอกเบี้ย (%)</Label>
           <Input
             id="interestRate"
             type="number"
@@ -80,7 +81,7 @@ const CompoundInterestCalculator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="years">Years</Label>
+          <Label htmlFor="years">ปี</Label>
           <Input
             id="years"
             type="number"
@@ -90,7 +91,7 @@ const CompoundInterestCalculator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="months">Months</Label>
+          <Label htmlFor="months">เดือน</Label>
           <Input
             id="months"
             type="number"
@@ -100,19 +101,19 @@ const CompoundInterestCalculator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="compoundingFrequency">Compounding</Label>
+          <Label htmlFor="compoundingFrequency">การคำนวณดอกเบี้ย</Label>
           <Select onValueChange={setCompoundingFrequency} defaultValue={compoundingFrequency}>
             <SelectTrigger className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <SelectValue placeholder="Select frequency" />
+              <SelectValue placeholder="เลือกความถี่" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Monthly">Monthly (12/yr)</SelectItem>
-              <SelectItem value="Yearly">Yearly (1/yr)</SelectItem>
+              <SelectItem value="Monthly">รายเดือน (12 ครั้ง/ปี)</SelectItem>
+              <SelectItem value="Yearly">รายปี (1 ครั้ง/ปี)</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="additionalContribution">Additional contributions ($)</Label>
+          <Label htmlFor="additionalContribution">การสมทบเพิ่มเติม ($)</Label>
           <Input
             id="additionalContribution"
             type="number"
@@ -122,52 +123,52 @@ const CompoundInterestCalculator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="contributionFrequency">Contribution frequency</Label>
+          <Label htmlFor="contributionFrequency">ความถี่การสมทบ</Label>
           <Select onValueChange={setContributionFrequency} defaultValue={contributionFrequency}>
             <SelectTrigger className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <SelectValue placeholder="Select frequency" />
+              <SelectValue placeholder="เลือกความถี่" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
+              <SelectItem value="monthly">รายเดือน</SelectItem>
+              <SelectItem value="yearly">รายปี</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
       <Button onClick={calculateCompoundInterest} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-        Calculate
+        คำนวณ
       </Button>
       {result && (
         <Card className="mt-6 bg-white dark:bg-gray-800">
           <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-100">Results</CardTitle>
+            <CardTitle className="text-gray-900 dark:text-gray-100">ผลลัพธ์</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <p className="font-semibold text-gray-700 dark:text-gray-300">Future Value</p>
+                <p className="font-semibold text-gray-700 dark:text-gray-300">มูลค่าในอนาคต</p>
                 <p className="text-2xl font-bold text-green-600">${result.futureValue}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700 dark:text-gray-300">Total Earnings</p>
+                <p className="font-semibold text-gray-700 dark:text-gray-300">รายได้รวม</p>
                 <p className="text-2xl font-bold text-blue-600">${result.totalEarnings}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700 dark:text-gray-300">Total Deposits</p>
+                <p className="font-semibold text-gray-700 dark:text-gray-300">ยอดฝากรวม</p>
                 <p className="text-2xl font-bold text-purple-600">${result.totalDeposits}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700 dark:text-gray-300">Time-Weighted Return</p>
+                <p className="font-semibold text-gray-700 dark:text-gray-300">ผลตอบแทนตามเวลาที่คำนวณ</p>
                 <p className="text-2xl font-bold text-orange-600">{result.timeWeightedReturn}%</p>
               </div>
             </div>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Interest Earned</TableHead>
-                  <TableHead>Total Deposits</TableHead>
+                  <TableHead>เดือน</TableHead>
+                  <TableHead>ยอดเงิน</TableHead>
+                  <TableHead>ดอกเบี้ยที่ได้รับ</TableHead>
+                  <TableHead>ยอดฝากรวม</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
