@@ -84,7 +84,7 @@ const PortfolioPage = () => {
         setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
       }
     } catch (err) {
-      setError('Failed to fetch data. Please try again.');
+      setError('Failed to fetch data. Please try again. ' + (err.message || ''));
     } finally {
       setLoading(false);
     }
@@ -112,15 +112,14 @@ const PortfolioPage = () => {
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
               <input
-  id="password"
-  type="password"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  required
-  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-  autocomplete="current-password"
-/>
-
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                autoComplete="current-password"
+              />
             </div>
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
@@ -145,7 +144,7 @@ const PortfolioPage = () => {
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart layout="vertical" data={accounts}>
+            <BarChart data={accounts} layout="vertical">
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" />
               <Tooltip />
