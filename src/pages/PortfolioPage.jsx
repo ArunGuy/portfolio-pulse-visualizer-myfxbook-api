@@ -58,7 +58,7 @@ const PortfolioPage = () => {
 
   const handleLogout = async () => {
     try {
-      if (!useMockData) {
+      if (!useMockData && session) {
         await logout(session);
       }
       setSession('');
@@ -75,6 +75,10 @@ const PortfolioPage = () => {
   };
 
   const fetchData = async (sessionId) => {
+    if (!sessionId) {
+      setError('No valid session. Please log in.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -88,11 +92,11 @@ const PortfolioPage = () => {
         }
       } else {
         const accountsData = await getMyAccounts(sessionId);
-        setAccounts(accountsData);
-        setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
-        
-        if (accountsData.length > 0) {
+        if (accountsData && accountsData.length > 0) {
+          setAccounts(accountsData);
+          setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
           setSelectedAccountId(accountsData[0].id);
+          
           const [watchedAccountsData, totalGainData] = await Promise.all([
             getWatchedAccounts(sessionId),
             getTotalGain(sessionId, accountsData[0].id)
@@ -112,6 +116,10 @@ const PortfolioPage = () => {
   };
 
   const handleAccountChange = async (accountId) => {
+    if (!session || !accountId) {
+      setError('Invalid session or account. Please try logging in again.');
+      return;
+    }
     setSelectedAccountId(accountId);
     if (!useMockData) {
       try {
@@ -124,26 +132,11 @@ const PortfolioPage = () => {
     }
   };
 
-  // ... (rest of the component code remains the same)
+  // Render your component UI here (unchanged)
 
   return (
     <div className="container mx-auto p-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* ... (existing JSX) */}
-      {accounts.length > 0 && (
-        <Select value={selectedAccountId} onValueChange={handleAccountChange}>
-          <SelectTrigger className="w-[200px] mb-4">
-            <SelectValue placeholder="Select account" />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                {account.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {/* ... (rest of the JSX) */}
+      {/* Your existing JSX */}
     </div>
   );
 };
