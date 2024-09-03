@@ -181,7 +181,7 @@ const PortfolioPage = () => {
                 <CardTitle>Total Balance</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">${totalBalance.toFixed(2)}</p>
+                <p className="text-3xl font-bold">$ {totalBalance.toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -189,7 +189,7 @@ const PortfolioPage = () => {
                 <CardTitle>Total Gain</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">%{totalGain.toFixed(2)}</p>
+                <p className="text-3xl font-bold">% {totalGain.toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
