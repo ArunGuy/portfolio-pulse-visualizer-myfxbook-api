@@ -1,5 +1,5 @@
 import React from 'react';
-import dogSuitImage from '../assets/images/dog-suit.jpg';
+import dogSuitImage from '../assets/images/dog-suit.png';
 
 const Index = () => {
   return (
