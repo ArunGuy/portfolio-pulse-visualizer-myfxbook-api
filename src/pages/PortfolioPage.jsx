@@ -21,12 +21,15 @@ const PortfolioPage = () => {
   const [useMockData, setUseMockData] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
   const [chartType, setChartType] = useState('bar');
+  const [accountName, setAccountName] = useState('');
 
   useEffect(() => {
-    if (session) {
-      fetchData();
+    const storedSession = localStorage.getItem('sessionId');
+    if (storedSession) {
+      setSession(storedSession);
+      fetchData(storedSession);
     }
-  }, [session]);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,12 +38,16 @@ const PortfolioPage = () => {
     try {
       if (email === 'demo@example.com' && password === 'demo123') {
         setUseMockData(true);
-        setSession('mock-session');
+        const mockSession = 'mock-session';
+        setSession(mockSession);
+        localStorage.setItem('sessionId', mockSession);
       } else {
         const sessionId = await login(email, password);
         setSession(sessionId);
+        localStorage.setItem('sessionId', sessionId);
         setUseMockData(false);
       }
+      await fetchData(session);
     } catch (err) {
       setError('Login failed. Please check your credentials and try again.');
       console.error('Login error:', err);
@@ -59,13 +66,15 @@ const PortfolioPage = () => {
       setWatchedAccounts([]);
       setTotalGain(0);
       setUseMockData(false);
+      setAccountName('');
+      localStorage.removeItem('sessionId');
     } catch (err) {
       setError('Logout failed. Please try again.');
       console.error('Logout error:', err);
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (sessionId) => {
     setLoading(true);
     setError('');
     try {
@@ -74,16 +83,20 @@ const PortfolioPage = () => {
         setWatchedAccounts(mockData.watchedAccounts);
         setTotalGain(mockData.totalGain);
         setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
+        setAccountName('Mock Account');
       } else {
         const [accountsData, watchedAccountsData, totalGainData] = await Promise.all([
-          getMyAccounts(session),
-          getWatchedAccounts(session),
-          getTotalGain(session)
+          getMyAccounts(sessionId),
+          getWatchedAccounts(sessionId),
+          getTotalGain(sessionId)
         ]);
         setAccounts(accountsData);
         setWatchedAccounts(watchedAccountsData);
         setTotalGain(totalGainData);
         setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
+        if (accountsData.length > 0) {
+          setAccountName(accountsData[0].name);
+        }
       }
     } catch (err) {
       setError(`Failed to fetch data: ${err.message}. Please try again later.`);
@@ -202,11 +215,11 @@ const PortfolioPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">MyFXBook Portfolio</h1>
         <div className="flex items-center space-x-4">
-          <Button onClick={fetchData} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={() => fetchData(session)} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
           <Button onClick={handleLogout} variant="outline" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Logout</Button>
-          <span className="text-sm">{email}</span>
+          <span className="text-sm">{accountName}</span>
         </div>
       </div>
 
