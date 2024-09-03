@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -113,6 +113,9 @@ const PortfolioPage = () => {
   };
 
   const getChartData = () => {
+    if (!accounts || accounts.length === 0) {
+      return [];
+    }
     return accounts.map(account => ({
       name: account.name,
       gain: account.gain
@@ -193,122 +196,129 @@ const PortfolioPage = () => {
               </CardContent>
             </Card>
           </div>
-
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>My Accounts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Gain</TableHead>
-                    <TableHead>Drawdown</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {accounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell>{account.name}</TableCell>
-                      <TableCell>${account.balance.toFixed(2)}</TableCell>
-                      <TableCell>{account.gain.toFixed(2)}%</TableCell>
-                      <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+  <CardHeader>
+    <CardTitle>My Accounts</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Balance</TableHead>
+          <TableHead>Gain</TableHead>
+          <TableHead>Drawdown</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {accounts && accounts.length > 0 ? (
+          accounts.map((account) => (
+            <TableRow key={account.id}>
+              <TableCell>{account.name}</TableCell>
+              <TableCell>${account.balance.toFixed(2)}</TableCell>
+              <TableCell>{account.gain.toFixed(2)}%</TableCell>
+              <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={4} style={{ textAlign: 'center' }}>
+              No account data available
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </CardContent>
+</Card>
 
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Watched Accounts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Gain</TableHead>
-                    <TableHead>Drawdown</TableHead>
-                    <TableHead>Change</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {watchedAccounts.map((account, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{account.name}</TableCell>
-                      <TableCell>{account.gain.toFixed(2)}%</TableCell>
-                      <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
-                      <TableCell>{account.change.toFixed(2)}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Chart</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end items-center mb-4">
-                <Select value={chartType} onValueChange={setChartType}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select chart type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bar">Bar Chart</SelectItem>
-                    <SelectItem value="line">Line Chart</SelectItem>
-                    <SelectItem value="pie">Pie Chart</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <ResponsiveContainer width="100%" height={300}>
-                {chartType === 'bar' && (
-                  <BarChart data={getChartData()}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="gain" fill="#8884d8" />
-                  </BarChart>
-                )}
-                {chartType === 'line' && (
-                  <LineChart data={getChartData()}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
-                  </LineChart>
-                )}
-                {chartType === 'pie' && (
-                  <PieChart>
-                    <Pie
-                      data={getChartData()}
-                      dataKey="gain"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      label
-                    >
-                      {getChartData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                )}
+<Card className="mb-6">
+  <CardHeader>
+    <CardTitle>Watched Accounts</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Gain</TableHead>
+          <TableHead>Drawdown</TableHead>
+          <TableHead>Change</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {watchedAccounts && watchedAccounts.length > 0 ? (
+          watchedAccounts.map((account, index) => (
+            <TableRow key={index}>
+              <TableCell>{account.name}</TableCell>
+              <TableCell>{account.gain.toFixed(2)}%</TableCell>
+              <TableCell>{account.drawdown.toFixed(2)}%</TableCell>
+              <TableCell>{account.change.toFixed(2)}%</TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={4} style={{ textAlign: 'center' }}>
+              No watched accounts data available
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </CardContent>
+</Card>
+
+
+          <div className="flex justify-end mb-4">
+            <Select
+              value={chartType}
+              onValueChange={(value) => setChartType(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select chart type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bar">Bar Chart</SelectItem>
+                <SelectItem value="line">Line Chart</SelectItem>
+                <SelectItem value="pie">Pie Chart</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mb-6">
+            {chartType === 'bar' && (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={getChartData()}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="gain" fill="#8884d8" />
+                </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            )}
+            {chartType === 'line' && (
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={getChartData()}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            {chartType === 'pie' && (
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie data={getChartData()} dataKey="gain" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label />
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </>
       )}
     </div>
