@@ -69,16 +69,16 @@ export const getDailyGain = async (session, id, start, end) => {
   return response.dailyGain ? response.dailyGain.gain : [];
 };
 
-export const getTotalGain = async (session, id, start, end) => {
+export const getTotalGain = async (session, id) => {
+  if (!session || !id) {
+    throw new Error('Session and account ID are required for getTotalGain');
+  }
   try {
-    const response = await apiCall('get-gain.xml', { session, id, start, end });
-    return response.value;
+    const response = await apiCall('get-gain.xml', { session, id });
+    return response.value ? parseFloat(response.value) : 0;
   } catch (error) {
     console.error('Error in getTotalGain:', error.message);
-    if (error.message.includes('Required fields missing')) {
-      throw new Error('Unable to fetch total gain. Please ensure all required fields are provided.');
-    }
-    throw error;
+    return 0; // Return 0 if there's an error, to avoid breaking the UI
   }
 };
 
