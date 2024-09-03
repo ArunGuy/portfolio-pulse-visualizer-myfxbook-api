@@ -107,6 +107,7 @@ const PortfolioPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">
