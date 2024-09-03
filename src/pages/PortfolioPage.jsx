@@ -139,7 +139,7 @@ const PortfolioPage = () => {
       <h1 className="text-3xl font-bold mb-6">Portfolio Overview</h1>
       
       {!session ? (
-        <Card>
+        <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Login</CardTitle>
           </CardHeader>
@@ -153,6 +153,7 @@ const PortfolioPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="username"
                 />
               </div>
               <div>
@@ -163,9 +164,10 @@ const PortfolioPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Logging in...' : 'Login'}
               </Button>
             </form>
