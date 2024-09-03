@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, getMyAccounts, getDailyGain, getTotalGain, logout, getWatchedAccounts } from '../services/myfxbookApi.jsx';
+import { login, getMyAccounts, getDailyGain, logout, getWatchedAccounts } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
 
 const PortfolioPage = () => {
@@ -23,7 +23,6 @@ const PortfolioPage = () => {
   const [useMockData, setUseMockData] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
   const [chartType, setChartType] = useState('bar');
-  const [selectedAccountId, setSelectedAccountId] = useState('');
 
   useEffect(() => {
     const storedSession = localStorage.getItem('sessionId');
@@ -68,7 +67,6 @@ const PortfolioPage = () => {
       setWatchedAccounts([]);
       setTotalGain(0);
       setUseMockData(false);
-      setSelectedAccountId('');
       localStorage.removeItem('sessionId');
     } catch (err) {
       setError('Logout failed. Please try again.');
@@ -87,24 +85,21 @@ const PortfolioPage = () => {
       if (useMockData) {
         setAccounts(mockData.accounts);
         setWatchedAccounts(mockData.watchedAccounts);
-        setTotalGain(mockData.totalGain);
-        setTotalBalance(mockData.accounts.reduce((sum, account) => sum + account.balance, 0));
-        if (mockData.accounts.length > 0) {
-          setSelectedAccountId(mockData.accounts[0].id);
-        }
+        const mockTotalGain = mockData.accounts.reduce((sum, account) => sum + account.gain, 0);
+        setTotalGain(mockTotalGain);
+        const mockTotalBalance = mockData.accounts.reduce((sum, account) => sum + account.balance, 0);
+        setTotalBalance(mockTotalBalance);
       } else {
         const accountsData = await getMyAccounts(sessionId);
         if (accountsData && accountsData.length > 0) {
           setAccounts(accountsData);
-          setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
-          setSelectedAccountId(accountsData[0].id);
+          const totalGainCalculated = accountsData.reduce((sum, account) => sum + account.gain, 0);
+          setTotalGain(totalGainCalculated);
+          const totalBalanceCalculated = accountsData.reduce((sum, account) => sum + account.balance, 0);
+          setTotalBalance(totalBalanceCalculated);
           
-          const [watchedAccountsData, totalGainData] = await Promise.all([
-            getWatchedAccounts(sessionId),
-            getTotalGain(sessionId, accountsData[0].id)
-          ]);
+          const watchedAccountsData = await getWatchedAccounts(sessionId);
           setWatchedAccounts(watchedAccountsData);
-          setTotalGain(totalGainData);
         } else {
           setError('No accounts found for this user.');
         }
@@ -117,21 +112,11 @@ const PortfolioPage = () => {
     }
   };
 
-  const handleAccountChange = async (accountId) => {
-    if (!session || !accountId) {
-      setError('Invalid session or account. Please try logging in again.');
-      return;
-    }
-    setSelectedAccountId(accountId);
-    if (!useMockData) {
-      try {
-        const totalGainData = await getTotalGain(session, accountId);
-        setTotalGain(totalGainData);
-      } catch (err) {
-        setError(`Failed to fetch total gain for the selected account: ${err.message}`);
-        console.error('Fetch total gain error:', err);
-      }
-    }
+  const getChartData = () => {
+    return accounts.map(account => ({
+      name: account.name,
+      gain: account.gain
+    }));
   };
 
   return (
@@ -270,19 +255,7 @@ const PortfolioPage = () => {
               <CardTitle>Performance Chart</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-between items-center mb-4">
-                <Select value={selectedAccountId} onValueChange={handleAccountChange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex justify-end items-center mb-4">
                 <Select value={chartType} onValueChange={setChartType}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select chart type" />
@@ -296,33 +269,28 @@ const PortfolioPage = () => {
               </div>
               <ResponsiveContainer width="100%" height={300}>
                 {chartType === 'bar' && (
-                  <BarChart data={mockData.dailyGain}>
-                    <XAxis dataKey="date" />
+                  <BarChart data={getChartData()}>
+                    <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="gain" fill="#8884d8" />
-                    <Bar dataKey="profit" fill="#82ca9d" />
                   </BarChart>
                 )}
                 {chartType === 'line' && (
-                  <LineChart data={mockData.dailyGain}>
-                    <XAxis dataKey="date" />
+                  <LineChart data={getChartData()}>
+                    <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="gain" stroke="#8884d8" />
-                    <Line type="monotone" dataKey="profit" stroke="#82ca9d" />
                   </LineChart>
                 )}
                 {chartType === 'pie' && (
                   <PieChart>
                     <Pie
-                      data={[
-                        { name: 'Gain', value: totalGain },
-                        { name: 'Balance', value: totalBalance - totalGain }
-                      ]}
-                      dataKey="value"
+                      data={getChartData()}
+                      dataKey="gain"
                       nameKey="name"
                       cx="50%"
                       cy="50%"
@@ -330,8 +298,9 @@ const PortfolioPage = () => {
                       fill="#8884d8"
                       label
                     >
-                      <Cell key="cell-0" fill="#8884d8" />
-                      <Cell key="cell-1" fill="#82ca9d" />
+                      {getChartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} />
+                      ))}
                     </Pie>
                     <Tooltip />
                     <Legend />
