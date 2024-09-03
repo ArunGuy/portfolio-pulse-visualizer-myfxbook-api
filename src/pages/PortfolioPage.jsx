@@ -42,7 +42,8 @@ const PortfolioPage = () => {
         setUseMockData(false);
       }
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      setError('Login failed. Please check your credentials and try again.');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -60,6 +61,7 @@ const PortfolioPage = () => {
       setUseMockData(false);
     } catch (err) {
       setError('Logout failed. Please try again.');
+      console.error('Logout error:', err);
     }
   };
 
@@ -84,7 +86,8 @@ const PortfolioPage = () => {
         setTotalBalance(accountsData.reduce((sum, account) => sum + account.balance, 0));
       }
     } catch (err) {
-      setError('Failed to fetch data. Please try again. ' + (err.message || ''));
+      setError(`Failed to fetch data: ${err.message}. Please try again later.`);
+      console.error('Fetch data error:', err);
     } finally {
       setLoading(false);
     }

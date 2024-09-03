@@ -13,7 +13,7 @@ const parseXmlResponse = (xmlData) => {
   return result.response;
 };
 
-const apiCall = async (endpoint, params) => {
+const apiCall = async (endpoint, params, retries = 3) => {
   try {
     const response = await axios.get(`${BASE_URL}/${endpoint}`, { params });
     if (response.status !== 200) {
@@ -26,6 +26,10 @@ const apiCall = async (endpoint, params) => {
     return parsedData;
   } catch (error) {
     console.error(`Error in ${endpoint}:`, error.message);
+    if (retries > 0) {
+      console.log(`Retrying ${endpoint}... (${retries} attempts left)`);
+      return apiCall(endpoint, params, retries - 1);
+    }
     throw error;
   }
 };
@@ -66,8 +70,16 @@ export const getDailyGain = async (session, id, start, end) => {
 };
 
 export const getTotalGain = async (session, id, start, end) => {
-  const response = await apiCall('get-gain.xml', { session, id, start, end });
-  return response.value;
+  try {
+    const response = await apiCall('get-gain.xml', { session, id, start, end });
+    return response.value;
+  } catch (error) {
+    console.error('Error in getTotalGain:', error.message);
+    if (error.message.includes('Required fields missing')) {
+      throw new Error('Unable to fetch total gain. Please ensure all required fields are provided.');
+    }
+    throw error;
+  }
 };
 
 export const logout = async (session) => {
