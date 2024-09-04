@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { RefreshCw, ArrowUpRight, AlertCircle } from "lucide-react";
+import { BarChart, Bar, LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { RefreshCw, ArrowUpRight, AlertCircle, BarChart2, LineChart as LineChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -238,19 +238,29 @@ const PortfolioPage = () => {
             </CardContent>
           </Card>
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Chart</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Chart</CardTitle>
               <Select value={chartType} onValueChange={setChartType}>
-                <SelectTrigger>
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select chart type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bar">Bar Chart</SelectItem>
-                  <SelectItem value="line">Line Chart</SelectItem>
+                  <SelectItem value="bar">
+                    <div className="flex items-center">
+                      <BarChart2 className="mr-2 h-4 w-4" />
+                      <span>Bar Chart</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="line">
+                    <div className="flex items-center">
+                      <LineChartIcon className="mr-2 h-4 w-4" />
+                      <span>Line Chart</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
+            </CardHeader>
+            <CardContent>
               <ResponsiveContainer width="100%" height={400}>
                 {chartType === 'bar' ? (
                   <BarChart data={getChartData()}>
