@@ -18,6 +18,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-dark-blue-900 relative">
+      <div className="w-full text-center py-8 bg-gradient-to-r from-blue-600 to-purple-600">
+        <h1 className="text-6xl font-extrabold text-white tracking-tight">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-600">
+            Mhagutsfund
+          </span>
+        </h1>
+      </div>
+      
       <div className="flex-grow flex items-center justify-center">
         <img
           src={dogSuitImage}
