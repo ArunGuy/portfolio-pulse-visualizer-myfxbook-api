@@ -51,6 +51,13 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Custom monochrome colors
+        mono: {
+          white: "#FFFFFF",
+          black: "#000000",
+          darkGray: "#333333",
+          lightGray: "#E0E0E0",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
