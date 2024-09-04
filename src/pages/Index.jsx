@@ -5,18 +5,19 @@ import bornfreImage from '../assets/images/bornfire3.jpeg';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useEmblaCarousel from 'embla-carousel-react';
 
-ReactModal.setAppElement('#root'); // Set the root element for accessibility
+ReactModal.setAppElement('#root');
 
 const Index = () => {
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [emblaRef] = useEmblaCarousel({ loop: false });
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-dark-blue-900 relative">
-      {/* Top frame */}
       <div className="flex-grow flex items-center justify-center">
         <img
           src={dogSuitImage}
@@ -25,31 +26,56 @@ const Index = () => {
         />
       </div>
       
-      {/* Bottom frame */}
+      <div className="embla w-full max-w-4xl" ref={emblaRef}>
+        <div className="embla__container flex">
+          <div className="embla__slide flex-[0_0_100%] min-w-0 p-2">
+            <div className="bg-gray-800 p-6 rounded-xl shadow-2xl h-full">
+              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">เกี่ยวกับเรา</h2>
+              <p className="text-gray-300 mb-6">เรียนรู้เพิ่มเติมเกี่ยวกับทีมของเราและวิสัยทัศน์ในการลงทุน</p>
+              <Button
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
+                onClick={openModal}
+              >
+                อ่านเพิ่มเติม
+              </Button>
+            </div>
+          </div>
+          <div className="embla__slide flex-[0_0_100%] min-w-0 p-2">
+            <div className="bg-gray-800 p-6 rounded-xl shadow-2xl h-full flex items-center">
+              <div className="w-1/2 h-64 flex items-center justify-center mr-8">
+                <img
+                  src={bornfreImage}
+                  alt="BornFree"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              </div>
+              <div className="w-1/2">
+                <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">ประวัติของกลุ่ม Mhagutsfund</h2>
+                <p className="text-gray-300 mb-6">เรียนรู้เกี่ยวกับจุดเริ่มต้น, ความหลากหลาย, และวิสัยทัศน์ของกลุ่มนักลงทุนที่มีความหลงใหลในโลกของการเงิน</p>
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
+                  onClick={openModal}
+                >
+                  อ่านเพิ่มเติม
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="embla__slide flex-[0_0_100%] min-w-0 p-2">
+            <div className="bg-gray-800 p-6 rounded-xl shadow-2xl h-full">
+              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">บริการของเรา</h2>
+              <p className="text-gray-300 mb-6">ค้นพบบริการต่างๆ ที่เรานำเสนอเพื่อช่วยคุณในการลงทุน</p>
+              <Button
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
+                onClick={openModal}
+              >
+                ดูบริการ
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <div className="flex items-center bg-gray-800 p-6 rounded-xl shadow-2xl max-w-4xl w-full">
-    <div className="w-1/2 h-64 flex items-center justify-center">
-      <img
-        src={bornfreImage}
-        alt="BornFree"
-        className="w-full h-full object-cover rounded-lg"
-      />
-    </div>
-    <div className="ml-8 flex flex-col text-white w-full">
-      <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">ประวัติของกลุ่ม Mhagutsfund</h2>
-      <p className="text-gray-300 mb-6">เรียนรู้เกี่ยวกับจุดเริ่มต้น, ความหลากหลาย, และวิสัยทัศน์ของกลุ่มนักลงทุนที่มีความหลงใหลในโลกของการเงิน</p>
-      <Button
-        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
-        onClick={openModal}
-      >
-        อ่านเพิ่มเติม
-      </Button>
-    </div>
-  </div>
-
-
-
-      {/* Modal */}
       <Dialog open={modalIsOpen} onOpenChange={setModalIsOpen}>
         <DialogContent className="sm:max-w-[700px] bg-gray-800 text-white border-none">
           <DialogHeader>
