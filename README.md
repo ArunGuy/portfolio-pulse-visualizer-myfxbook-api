@@ -2,6 +2,8 @@
 
 ## Project info
 
+This project explores the integration of the MYFXBOOK API to present data in a user-friendly and streamlined manner. It focuses on visualizing forex trading information and performing compound interest calculations. Additionally, the project features recommendations for Expert Advisors (EAs) used in forex trading. The goal is to offer a simple yet effective interface for tracking portfolio performance and understanding complex forex metrics.
+
 **Project**: portfolio-pulse-visualizer
 
 **URL**: https://run.gptengineer.app/projects/181b0697-4dc9-458f-9c4b-a2011c4151ac/improve
@@ -71,6 +73,8 @@ We don't support custom domains (yet). If you want to deploy your project under 
 ## ข้อมูลโปรเจกต์
 
 **โปรเจกต์**: portfolio-pulse-visualizer
+
+โปรเจคนี้ทดลองใช้งาน MYFXBOOK API เพื่อแสดงข้อมูลการเทรด forex ในรูปแบบที่เรียบง่าย พร้อมทั้งมีฟีเจอร์สำหรับคำนวณดอกเบี้ยทบต้น (compound interest) และแนะนำ Expert Advisors (EAs) สำหรับการเทรด forex
 
 **URL**: [https://run.gptengineer.app/projects/181b0697-4dc9-458f-9c4b-a2011c4151ac/improve](https://run.gptengineer.app/projects/181b0697-4dc9-458f-9c4b-a2011c4151ac/improve)
 
