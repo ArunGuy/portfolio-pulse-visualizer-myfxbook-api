@@ -96,6 +96,7 @@ We don't support custom domains (yet). If you want to deploy your project under 
 git clone https://github.com/GPT-Engineer-App/portfolio-pulse-visualizer.git
 cd portfolio-pulse-visualizer
 npm i
+```
 
 # สิ่งนี้จะรัน dev server พร้อมการรีโหลดอัตโนมัติและแสดงผลแบบเรียลไทม์
 npm run dev
