@@ -139,7 +139,7 @@ const PortfolioPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="container mx-auto p-4 bg-background text-foreground">
       <h1 className="text-3xl font-bold mb-6">Portfolio Overview</h1>
       
       {!session ? (
