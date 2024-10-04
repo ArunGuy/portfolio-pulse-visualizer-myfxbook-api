@@ -136,6 +136,7 @@ const CompoundInterestCalculator = () => {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
       <Button onClick={calculateCompoundInterest} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         คำนวณ
