@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart, Bar, LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { RefreshCw, ArrowUpRight, AlertCircle, BarChart2, LineChart as LineChartIcon } from "lucide-react";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Cell } from 'recharts';
+import { RefreshCw, ArrowUpRight, AlertCircle, BarChart2, LineChart as LineChartIcon, PieChart as PieChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, getMyAccounts, getWatchedAccounts, logout } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
+
+// ... keep existing code (imports and initial state)
 
 const PortfolioPage = () => {
   const [session, setSession] = useState('');
@@ -134,9 +136,12 @@ const PortfolioPage = () => {
     }
     return accounts.map(account => ({
       name: account.name,
-      gain: account.gain
+      gain: account.gain,
+      balance: account.balance
     }));
   };
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
 
   return (
     <div className="container mx-auto p-4 bg-background text-foreground">
@@ -212,6 +217,8 @@ const PortfolioPage = () => {
               </CardContent>
             </Card>
           </div>
+          </div>
+
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>My Accounts</CardTitle>
@@ -237,9 +244,10 @@ const PortfolioPage = () => {
               </Table>
             </CardContent>
           </Card>
+
           <Card className="mb-6">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Chart</CardTitle>
+              <CardTitle className="text-sm font-medium">Portfolio Analysis</CardTitle>
               <Select value={chartType} onValueChange={setChartType}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select chart type" />
@@ -257,6 +265,12 @@ const PortfolioPage = () => {
                       <span>Line Chart</span>
                     </div>
                   </SelectItem>
+                  <SelectItem value="pie">
+                    <div className="flex items-center">
+                      <PieChartIcon className="mr-2 h-4 w-4" />
+                      <span>Pie Chart</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </CardHeader>
@@ -265,17 +279,42 @@ const PortfolioPage = () => {
                 {chartType === 'bar' ? (
                   <BarChart data={getChartData()}>
                     <XAxis dataKey="name" />
-                    <YAxis />
+                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
                     <Tooltip />
-                    <Bar dataKey="gain" fill="#8884d8" />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="gain" fill="#8884d8" name="Gain (%)" />
+                    <Bar yAxisId="right" dataKey="balance" fill="#82ca9d" name="Balance ($)" />
                   </BarChart>
-                ) : (
+                ) : chartType === 'line' ? (
                   <LineChart data={getChartData()}>
                     <XAxis dataKey="name" />
-                    <YAxis />
+                    <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                    <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
                     <Tooltip />
-                    <Line type="monotone" dataKey="gain" stroke="#8884d8" />
+                    <Legend />
+                    <Line yAxisId="left" type="monotone" dataKey="gain" stroke="#8884d8" name="Gain (%)" />
+                    <Line yAxisId="right" type="monotone" dataKey="balance" stroke="#82ca9d" name="Balance ($)" />
                   </LineChart>
+                ) : (
+                  <PieChart>
+                    <Pie
+                      data={getChartData()}
+                      dataKey="balance"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={150}
+                      fill="#8884d8"
+                      label
+                    >
+                      {getChartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
                 )}
               </ResponsiveContainer>
             </CardContent>

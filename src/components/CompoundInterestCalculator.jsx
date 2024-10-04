@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CompoundInterestCalculator = () => {
   const [startBalance, setStartBalance] = useState('');
@@ -54,8 +55,17 @@ const CompoundInterestCalculator = () => {
       monthlyBreakdown,
     });
   };
-  
-  
+
+    const chartData = monthlyBreakdown.filter((_, index) => index % 12 === 0 || index === monthlyBreakdown.length - 1);
+    setResult({
+      futureValue: balance.toFixed(2),
+      totalEarnings: totalEarnings.toFixed(2),
+      totalDeposits: totalDeposits.toFixed(2),
+      timeWeightedReturn: timeWeightedReturn.toFixed(2),
+      monthlyBreakdown,
+      chartData,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -135,9 +145,11 @@ const CompoundInterestCalculator = () => {
           </Select>
         </div>
       </div>
+
       <Button onClick={calculateCompoundInterest} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         คำนวณ
       </Button>
+
       {result && (
         <Card className="mt-6 bg-white dark:bg-gray-800">
           <CardHeader>
@@ -162,6 +174,23 @@ const CompoundInterestCalculator = () => {
                 <p className="text-2xl font-bold text-orange-600">{result.timeWeightedReturn}%</p>
               </div>
             </div>
+
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold mb-4">การเติบโตของเงินลงทุน</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={result.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" label={{ value: 'เดือน', position: 'insideBottomRight', offset: -10 }} />
+                  <YAxis label={{ value: 'จำนวนเงิน ($)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="balance" name="ยอดเงินรวม" stroke="#8884d8" />
+                  <Line type="monotone" dataKey="totalDeposits" name="เงินฝากสะสม" stroke="#82ca9d" />
+                  <Line type="monotone" dataKey="interestEarned" name="ดอกเบี้ยสะสม" stroke="#ffc658" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
             <Table>
               <TableHeader>
                 <TableRow>
