@@ -19,7 +19,7 @@ const CompoundInterestCalculator = () => {
 
   const calculateCompoundInterest = () => {
     const principal = parseFloat(startBalance);
-    const monthlyRate = parseFloat(interestRate) / 100; // ใช้อัตราดอกเบี้ยรายเดือน
+    const monthlyRate = parseFloat(interestRate) / 100 / 12; // Convert annual rate to monthly
     const totalMonths = parseInt(years) * 12 + parseInt(months);
     const additionalPerPeriod = parseFloat(additionalContribution) || 0;
     
@@ -28,7 +28,7 @@ const CompoundInterestCalculator = () => {
     const monthlyBreakdown = [];
     
     for (let month = 1; month <= totalMonths; month++) {
-      const interestEarned = balance * monthlyRate; // คำนวณดอกเบี้ยรายเดือน
+      const interestEarned = balance * monthlyRate;
       balance += interestEarned;
       
       if (contributionFrequency === 'monthly' || (contributionFrequency === 'yearly' && month % 12 === 0)) {
@@ -47,16 +47,8 @@ const CompoundInterestCalculator = () => {
     const totalEarnings = balance - totalDeposits;
     const timeWeightedReturn = ((balance / totalDeposits) - 1) * 100;
     
-    setResult({
-      futureValue: balance.toFixed(2),
-      totalEarnings: totalEarnings.toFixed(2),
-      totalDeposits: totalDeposits.toFixed(2),
-      timeWeightedReturn: timeWeightedReturn.toFixed(2),
-      monthlyBreakdown,
-    });
-  };
-
     const chartData = monthlyBreakdown.filter((_, index) => index % 12 === 0 || index === monthlyBreakdown.length - 1);
+    
     setResult({
       futureValue: balance.toFixed(2),
       totalEarnings: totalEarnings.toFixed(2),
@@ -144,7 +136,6 @@ const CompoundInterestCalculator = () => {
             </SelectContent>
           </Select>
         </div>
-      </div>
 
       <Button onClick={calculateCompoundInterest} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         คำนวณ

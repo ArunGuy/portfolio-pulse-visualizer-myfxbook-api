@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Cell } from 'recharts';
-import { RefreshCw, ArrowUpRight, AlertCircle, BarChart2, LineChart as LineChartIcon, PieChart as PieChartIcon } from "lucide-react";
+import { RefreshCw, AlertCircle, BarChart2, LineChart as LineChartIcon, PieChart as PieChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, getMyAccounts, getWatchedAccounts, logout } from '../services/myfxbookApi.jsx';
 import { mockData } from '../mockData.js';
-
-// ... keep existing code (imports and initial state)
 
 const PortfolioPage = () => {
   const [session, setSession] = useState('');
@@ -216,7 +214,6 @@ const PortfolioPage = () => {
                 <p className="text-3xl font-bold">% {totalGain.toFixed(2)}</p>
               </CardContent>
             </Card>
-          </div>
           </div>
 
           <Card className="mb-6">
